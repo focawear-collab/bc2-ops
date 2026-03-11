@@ -9,6 +9,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.0/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -179,6 +181,38 @@ function getPriorities(dayName, idx, sched, staff) {
 function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
 function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
 
+/* âââââââââââââââââââ FIREBASE SYNC âââââââââââââââââââ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBXn6K6_eDhgflbG_ek5s4Qf5N4KxOnXyo",
+  authDomain: "blackchicken-ops.firebaseapp.com",
+  databaseURL: "https://blackchicken-ops-default-rtdb.firebaseio.com",
+  projectId: "blackchicken-ops",
+  storageBucket: "blackchicken-ops.firebasestorage.app",
+  messagingSenderId: "613211123193",
+  appId: "1:613211123193:web:5f3b273ddb6da3c65aa128"
+};
+const FB_PREFIX = 'bc2';
+let _db = null;
+function getDB() {
+  if (_db) return _db;
+  try {
+    if (!window.firebase) return null;
+    if (FIREBASE_CONFIG.apiKey === "REPLACE_ME") return null;
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+    return _db;
+  } catch(e) { return null; }
+}
+async function fbLoad(key) {
+  const db = getDB(); if (!db) return null;
+  try { const s = await db.ref(FB_PREFIX + '/' + key).once('value'); return s.val(); } catch { return null; }
+}
+function fbSave(key, val) {
+  const db = getDB(); if (!db) return;
+  try { db.ref(FB_PREFIX + '/' + key).set(val).catch(()=>{}); } catch {}
+}
+
+
 /* âââââââââââââââââââ SETTINGS PANEL âââââââââââââââââââ */
 const SettingsPanel = ({ staff, activeDays, weekStart, setWeekStart, setActiveDays, addStaff, removeStaff, updateStaff, regenerate, onClose }) => (
   <div className="fixed inset-0 z-[100] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
@@ -268,11 +302,24 @@ const App = () => {
   const [editMode, setEditMode] = useState(false);
 
   // Persist
-  useEffect(() => { saveJSON('bc2_staff', staff); }, [staff]);
+  useEffect(() => { saveJSON('bc2_staff', staff); fbSave('staff', staff); }, [staff]);
   useEffect(() => { localStorage.setItem('bc2_ws', weekStart.toISOString()); }, [weekStart]);
-  useEffect(() => { saveJSON('bc2_days', activeDays); }, [activeDays]);
-  useEffect(() => { saveJSON('bc2_done', completed); }, [completed]);
-  useEffect(() => { if (customSched) saveJSON('bc2_custom', customSched); }, [customSched]);
+  useEffect(() => { saveJSON('bc2_days', activeDays); fbSave('activeDays', activeDays); }, [activeDays]);
+  useEffect(() => { saveJSON('bc2_done', completed); fbSave('done', completed); }, [completed]);
+  useEffect(() => { if (customSched) { saveJSON('bc2_custom', customSched); fbSave('customSched', customSched); } }, [customSched]);
+
+  // Cargar datos desde Firebase al abrir la app
+  useEffect(() => {
+    (async () => {
+      const [fbDone, fbStaff, fbDays, fbCustom] = await Promise.all([
+        fbLoad('done'), fbLoad('staff'), fbLoad('activeDays'), fbLoad('customSched')
+      ]);
+      if (fbDone && Object.keys(fbDone).length > 0) setCompleted(fbDone);
+      if (fbStaff && fbStaff.length > 0) setStaff(fbStaff);
+      if (fbDays && fbDays.length > 0) setActiveDays(fbDays);
+      if (fbCustom) setCustomSched(fbCustom);
+    })();
+  }, []);
 
   const autoSched = useMemo(() => generateSchedule(staff, tasks, activeDays), [staff, tasks, activeDays]);
   const schedule = customSched || autoSched;
