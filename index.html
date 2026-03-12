@@ -300,6 +300,7 @@ const App = () => {
   const [showAi, setShowAi] = useState(false);
   const [customSched, setCustomSched] = useState(() => loadJSON('bc2_custom', null));
   const [editMode, setEditMode] = useState(false);
+  const [filterStaff, setFilterStaff] = useState(() => localStorage.getItem('bc2_filter') || null);
 
   // Persist
   useEffect(() => { saveJSON('bc2_staff', staff); fbSave('staff', staff); }, [staff]);
@@ -320,6 +321,11 @@ const App = () => {
       if (fbCustom) setCustomSched(fbCustom);
     })();
   }, []);
+
+  useEffect(() => {
+    if (filterStaff) localStorage.setItem('bc2_filter', filterStaff);
+    else localStorage.removeItem('bc2_filter');
+  }, [filterStaff]);
 
   const autoSched = useMemo(() => generateSchedule(staff, tasks, activeDays), [staff, tasks, activeDays]);
   const schedule = customSched || autoSched;
@@ -410,6 +416,28 @@ const App = () => {
             })}
           </div>
 
+          {/* Staff Filter */}
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <button onClick={() => setFilterStaff(null)}
+              className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all ${
+                !filterStaff ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}>
+              Todos
+            </button>
+            {staff.map(p => {
+              const c = CC[p.color] || CC.blue;
+              const active = filterStaff === p.id;
+              return (
+                <button key={p.id} onClick={() => setFilterStaff(active ? null : p.id)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all ${
+                    active ? c.hdr : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}>
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Date + buttons */}
           <div className="flex justify-between items-center">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{dateLabel}</span>
@@ -461,8 +489,15 @@ const App = () => {
         )}
 
         {/* Schedule Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(schedule[activeTab] || []).map((bloque, bi) => {
+        {(() => {
+          const allBlocks = (schedule[activeTab] || []).map((bloque, bi) => ({ bloque, bi }));
+          const visibleBlocks = filterStaff ? allBlocks.filter(({ bloque }) => bloque.usuario === filterStaff) : allBlocks;
+          const gridClass = visibleBlocks.length === 1
+            ? 'grid grid-cols-1 max-w-xl mx-auto w-full gap-4'
+            : 'grid grid-cols-1 md:grid-cols-2 gap-4';
+          return (
+        <div className={gridClass}>
+          {visibleBlocks.map(({ bloque, bi }) => {
             const person = staff.find(s => s.id === bloque.usuario);
             if (!person) return null;
             const c = CC[person.color] || CC.blue;
@@ -530,6 +565,8 @@ const App = () => {
             );
           })}
         </div>
+          );
+        })()}
 
         {/* Weekly summary */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
