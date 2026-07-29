@@ -55,7 +55,12 @@ const DAY_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DAY_FULL   = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const PALETTE = ['#D4A843','#3b82f6','#10b981','#a855f7','#f97316','#f43f5e','#06b6d4','#6366f1'];
 const colorOf = (i) => PALETTE[i % PALETTE.length];
-const MASTER_PIN = '8080';   /* Jonathan · debe coincidir con el PIN maestro del SQL */
+/* Quién puede asignar. Es solo para la interfaz — la regla de verdad
+   vive en salon_can_assign() dentro de Supabase y no se puede saltar. */
+const puedeAsignarRol = (role) => {
+  const r = (role||'').normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  return (r.includes('jefe') || r.includes('jefa')) && r.includes('garzon') || r.startsWith('dueno');
+};
 
 /* ═══════════ FECHAS ═══════════ */
 function getMonday(d){ const x=new Date(d); const w=x.getDay(); x.setDate(x.getDate()-w+(w===0?-6:1)); x.setHours(0,0,0,0); return x; }
@@ -184,10 +189,13 @@ const Login = ({ loc, people, onLogin, onBack, theme, toggleTheme }) => {
   const L=LOCALES[loc];
   const intentar = async (p) => {
     setBusy(true);
-    if (p === MASTER_PIN) { setBusy(false); onLogin({ id:0, name:'Jonathan', role:'Dueño', pin:p, puedeAsignar:true }); return; }
     for (const per of people) {
       const r = await sbRpc('verify_pin', { p_person: per.id, p_pin: p });
-      if (r.data === true) { setBusy(false); onLogin({ ...per, pin:p }); return; }
+      if (r.data === true) {
+        setBusy(false);
+        onLogin({ id:per.id, name:(per.name||'').split(' ')[0], role:per.role, pin:p, puedeAsignar:puedeAsignarRol(per.role) });
+        return;
+      }
     }
     setBusy(false); setErr('PIN incorrecto'); setPin('');
     if (navigator.vibrate) navigator.vibrate(180);
@@ -508,7 +516,8 @@ const App = () => {
   const [theme,setTheme]=useState(()=>localStorage.getItem('bcops_theme')||'dark');
   const [loc,setLoc]=useState(()=>localStorage.getItem('bcops_loc')||null);
   const [user,setUser]=useState(null);
-  const [people,setPeople]=useState([]);
+  const [people,setPeople]=useState([]);      /* salón asignable, espejo del organigrama */
+  const [loginPool,setLoginPool]=useState([]); /* quién puede entrar: salón + jefaturas */
   const [catalog,setCatalog]=useState([]);
   const [days,setDays]=useState([]);
   const [asign,setAsign]=useState({});
@@ -535,13 +544,14 @@ const App = () => {
       setCargando(true);
       const [orgR, sup, cat] = await Promise.all([
         fetch('/api/personal').then(r=>r.json()).catch(()=>({ok:false,people:[]})),
-        sbGet('people_public?select=id,name,role,local,station&station=eq.S'),
+        sbGet('people_public?select=id,name,role,local,station&station=in.(S,B)'),
         sbGet('salon_task_catalog?select=*&active=eq.true&order=sort_order'),
       ]);
       if(!vivo) return;
 
       const norm=s=>(s||'').normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
-      const supBy=Object.fromEntries((sup||[]).map(p=>[norm(p.name),p]));
+      const supBy=Object.fromEntries((sup||[]).filter(p=>p.station==='S').map(p=>[norm(p.name),p]));
+      setLoginPool((sup||[]).filter(p=>p.local===loc||p.local==='AMBOS'));
       const delLocal=(orgR.people||[]).filter(p=>p.local===loc);
       const faltantes=[];
       const lista=delLocal.map(p=>{
@@ -552,7 +562,7 @@ const App = () => {
       }).filter(p=>p.pinOk);
 
       setPeople(lista);
-      setCatalog((cat||[]).map(t=>({...t, time:t.time||''})));
+      setCatalog((cat||[]).map(t=>({...t, time:t.time_due||''})));
       setDays(ALL_DAYS.slice(0,LOCALES[loc].openDays));
 
       const problemas=[];
@@ -604,7 +614,7 @@ const App = () => {
       <p className="text-[10px] font-black uppercase tracking-[0.3em] dim">Cargando</p>
     </div>
   );
-  if(!user) return <Login loc={loc} people={people} onLogin={setUser} onBack={cambiarLocal} theme={theme} toggleTheme={toggleTheme}/>;
+  if(!user) return <Login loc={loc} people={loginPool} onLogin={setUser} onBack={cambiarLocal} theme={theme} toggleTheme={toggleTheme}/>;
 
   const L=LOCALES[loc];
   const esHoySemana = weekISO===toISO(getMonday(new Date()));

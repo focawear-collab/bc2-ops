@@ -1,15 +1,15 @@
 -- ============================================================
 -- BlackChicken · Tareas de Salón asignadas (Supabase)
--- Conecta la app de asignación (bc1-ops / bc2-ops) con la app
+--
+-- Conecta la app de planificación (bc1-ops / bc2-ops) con la app
 -- de checklists (bc-checklist), usando el MISMO roster `people`.
 --
--- ⚠️  PASO OBLIGATORIO antes de correr:
---     reemplaza TODAS las ocurrencias de  CAMBIA_ESTE_PIN  (son 3)
---     por tu PIN maestro — el mismo que ya usas en "⚙ Equipo".
---     En el editor de Supabase: Cmd+F, "CAMBIA_ESTE_PIN", reemplazar todo.
+-- ✅ NO hay nada que reemplazar. Copia y pega completo:
+--    Supabase → SQL Editor → New query → Run.
+--    Es idempotente: se puede correr de nuevo sin romper nada.
 --
--- Correr COMPLETO en: Supabase -> SQL Editor -> New query -> Run
--- Es idempotente: se puede correr de nuevo sin romper nada.
+-- 🔑 Tu PIN queda como 7315 (Jonathan). Para cambiarlo después:
+--    update people set pin='XXXX' where name='Jonathan Fosk';
 -- ============================================================
 
 -- ─────────────────────────────────────────────
@@ -19,7 +19,7 @@ create table if not exists salon_task_catalog (
   id             text primary key,
   name           text not null,
   icon           text not null default 'checksq',
-  time           text,                            -- '15:00' o 'cierre'
+  time_due       text,                            -- '15:00' o 'cierre'
   priority       text not null default 'media' check (priority in ('alta','media','baja')),
   days           text[],                          -- null = todos los días
   is_break       boolean not null default false,
@@ -32,7 +32,7 @@ alter table salon_task_catalog enable row level security;
 drop policy if exists "read catalog" on salon_task_catalog;
 create policy "read catalog" on salon_task_catalog for select to anon using (true);
 
-insert into salon_task_catalog (id, name, icon, time, priority, days, is_break, photo_required, sort_order) values
+insert into salon_task_catalog (id, name, icon, time_due, priority, days, is_break, photo_required, sort_order) values
   ('descanso',     'Descanso',                                   'coffee',   '16:00',  'media', null,             true,  false, 100),
   ('bebestibles',  'Rellenar bebestibles',                       'package',  '14:30',  'alta',  null,             false, true,  10),
   ('take_away',    'Rellenar take away',                         'utensils', '14:30',  'alta',  null,             false, true,  11),
@@ -51,7 +51,7 @@ insert into salon_task_catalog (id, name, icon, time, priority, days, is_break, 
 on conflict (id) do nothing;
 
 -- Revisión de pedidos delivery: solo BC1 (BC2 no tiene delivery)
-insert into salon_task_catalog (id, name, icon, time, priority, days, is_break, photo_required, locals, sort_order)
+insert into salon_task_catalog (id, name, icon, time_due, priority, days, is_break, photo_required, locals, sort_order)
   values ('delivery_check','Revisión Pedidos Delivery','truck','13:00','alta',null,false,true,array['BC1'],5)
 on conflict (id) do nothing;
 
@@ -88,7 +88,7 @@ create table if not exists salon_task_log (
   time_due   text,                                 -- hora asignada, congelada al registrar
   done_at    timestamptz not null default now(),
   photo_url  text,
-  source     text not null default 'checklist',    -- 'checklist' | 'ops'
+  source     text not null default 'checklist',
   unique (local, work_date, person_id, task_id)
 );
 alter table salon_task_log enable row level security;
@@ -113,21 +113,43 @@ drop policy if exists "read shift submits" on salon_shift_submits;
 create policy "read shift submits" on salon_shift_submits for select to anon using (true);
 
 -- ─────────────────────────────────────────────
--- 5) QUIÉN PUEDE ASIGNAR
---    Los jefes de garzones (Cristóbal y Mariangel) en ambos locales.
+-- 5) ROSTER: sincronizar con el organigrama
+--    Al 29-jul-2026 el organigrama tiene 2 garzonas que NO existen en
+--    `people` (por lo tanto hoy no pueden entrar a NINGUNA app), y 1
+--    persona en `people` que ya no está en el organigrama.
+--    Además se agrega a Jonathan, que no estaba en el roster.
+-- ─────────────────────────────────────────────
+insert into people (name, role, local, station, pin, active)
+select * from (values
+  ('Catalina Jaque','Garzona Part Time','AMBOS','S','4812',true),
+  ('Francisca Ortiz','Garzona Part Time','AMBOS','S','5237',true),
+  ('Jonathan Fosk','Dueño','AMBOS','B','7315',true)
+) as v(name,role,local,station,pin,active)
+where not exists (select 1 from people p where p.name = v.name);
+
+-- Maria Paula Rincon ya no aparece en el organigrama → desactivar.
+-- Comenta esta línea si sigue trabajando.
+update people set active = false where name = 'Maria Paula Rincon';
+
+-- ─────────────────────────────────────────────
+-- 6) QUIÉN PUEDE ASIGNAR
+--    Los jefes de garzones (Cristóbal y Mariangel) + Jonathan.
+--    Nadie más, y se valida en el servidor: no se puede saltar
+--    tocando el código de la app.
 -- ─────────────────────────────────────────────
 create or replace function salon_can_assign(p_person int)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from people
-     where id = p_person and active and station = 'S'
-       and (role ilike '%jefe%garzon%' or role ilike '%jefa%garzon%')
+     where id = p_person and active
+       and ( (station = 'S' and (role ilike '%jefe%garzon%' or role ilike '%jefa%garzon%'))
+             or role ilike 'due%o' )
   );
 $$;
 grant execute on function salon_can_assign(int) to anon;
 
 -- ─────────────────────────────────────────────
--- 6) LECTURA: tareas de una persona en un día
+-- 7) LECTURA: tareas de una persona en un día
 --    Es lo único que necesita bc-checklist para mostrarlas.
 -- ─────────────────────────────────────────────
 create or replace function salon_my_tasks(p_person int, p_local text, p_date date)
@@ -141,27 +163,28 @@ language sql stable security definer set search_path = public as $$
     select case extract(isodow from p_date)
       when 1 then 'lunes' when 2 then 'martes' when 3 then 'miercoles'
       when 4 then 'jueves' when 5 then 'viernes' when 6 then 'sabado'
-      else 'domingo' end as d
+      else 'domingo' end as d,
+      (p_date - (extract(isodow from p_date)::int - 1))::date as lunes
   )
-  select c.id, c.name, c.icon, c.time, c.priority,
+  select c.id, c.name, c.icon, c.time_due, c.priority,
          c.is_break, c.photo_required,
          l.done_at, l.photo_url
     from salon_assignments a
-    join salon_task_catalog c on c.id = a.task_id and c.active
     cross join dia
+    join salon_task_catalog c on c.id = a.task_id and c.active
     left join salon_task_log l
       on l.local = a.local and l.work_date = p_date
      and l.person_id = a.person_id and l.task_id = a.task_id
-   where a.person_id = p_person
-     and a.local     = p_local
-     and a.day_name  = dia.d
-     and a.week_start = (p_date - ((extract(isodow from p_date)::int - 1)))
-   order by (c.time = 'cierre'), c.time, c.sort_order;
+   where a.person_id  = p_person
+     and a.local      = p_local
+     and a.day_name   = dia.d
+     and a.week_start = dia.lunes
+   order by (c.time_due = 'cierre'), c.time_due, c.sort_order;
 $$;
 grant execute on function salon_my_tasks(int, text, date) to anon;
 
 -- ─────────────────────────────────────────────
--- 7) ESCRITURA: marcar una tarea (valida PIN + foto obligatoria)
+-- 8) ESCRITURA: marcar una tarea (valida PIN + foto obligatoria)
 -- ─────────────────────────────────────────────
 create or replace function salon_log_task(
   p_person int, p_pin text, p_local text, p_task text, p_photo text, p_date date default null
@@ -171,7 +194,7 @@ begin
   if not verify_pin(p_person, p_pin) then raise exception 'PIN invalido'; end if;
   v_date := coalesce(p_date, current_date);
 
-  select name, time, photo_required into v_name, v_time, v_req
+  select name, time_due, photo_required into v_name, v_time, v_req
     from salon_task_catalog where id = p_task and active;
   if not found then raise exception 'tarea no existe'; end if;
 
@@ -210,21 +233,17 @@ end $$;
 grant execute on function salon_submit_shift(int, text, text, int, int) to anon;
 
 -- ─────────────────────────────────────────────
--- 8) ASIGNAR: reemplaza la asignación de un día completo
+-- 9) ASIGNAR: reemplaza la asignación de un día completo
 --    p_assign = {"12": ["barrer_piso","bancos"], "15": ["mesones"]}
 --    (clave = person_id como texto, valor = lista de task_id)
 -- ─────────────────────────────────────────────
 create or replace function salon_set_day(
   p_actor int, p_pin text, p_local text, p_week date, p_day text, p_assign jsonb
 ) returns void language plpgsql security definer set search_path = public as $$
-declare k text; v jsonb; t text; es_maestro boolean;
+declare k text; v jsonb; t text;
 begin
-  -- p_actor = 0 con el PIN maestro = Jonathan (no está en `people`)
-  es_maestro := (p_actor = 0 and p_pin = 'CAMBIA_ESTE_PIN');
-  if not es_maestro then
-    if not verify_pin(p_actor, p_pin) then raise exception 'PIN invalido'; end if;
-    if not salon_can_assign(p_actor)  then raise exception 'solo los jefes de garzones pueden asignar'; end if;
-  end if;
+  if not verify_pin(p_actor, p_pin) then raise exception 'PIN invalido'; end if;
+  if not salon_can_assign(p_actor)  then raise exception 'solo los jefes de garzones pueden asignar'; end if;
 
   delete from salon_assignments
    where local = p_local and week_start = p_week and day_name = p_day;
@@ -232,7 +251,7 @@ begin
   for k, v in select * from jsonb_each(p_assign) loop
     for t in select jsonb_array_elements_text(v) loop
       insert into salon_assignments (local, week_start, day_name, person_id, task_id, assigned_by)
-           values (p_local, p_week, p_day, k::int, t, nullif(p_actor, 0))
+           values (p_local, p_week, p_day, k::int, t, p_actor)
       on conflict do nothing;
     end loop;
   end loop;
@@ -240,7 +259,7 @@ end $$;
 grant execute on function salon_set_day(int, text, text, date, text, jsonb) to anon;
 
 -- ─────────────────────────────────────────────
--- 9) PANEL: semana completa con cumplimiento
+-- 10) PANEL: semana completa con cumplimiento
 -- ─────────────────────────────────────────────
 create or replace function salon_week_report(p_local text, p_week date)
 returns table (
@@ -252,7 +271,7 @@ language sql stable security definer set search_path = public as $$
   select a.day_name,
          (p_week + (array_position(array['lunes','martes','miercoles','jueves','viernes','sabado','domingo'], a.day_name) - 1))::date,
          p.id, p.name,
-         c.id, c.name, c.time, c.priority, c.is_break,
+         c.id, c.name, c.time_due, c.priority, c.is_break,
          l.done_at, l.photo_url
     from salon_assignments a
     join people p on p.id = a.person_id
@@ -262,13 +281,16 @@ language sql stable security definer set search_path = public as $$
      and l.work_date = (p_week + (array_position(array['lunes','martes','miercoles','jueves','viernes','sabado','domingo'], a.day_name) - 1))::date
    where a.local = p_local and a.week_start = p_week
    order by array_position(array['lunes','martes','miercoles','jueves','viernes','sabado','domingo'], a.day_name),
-            p.name, (c.time = 'cierre'), c.time;
+            p.name, (c.time_due = 'cierre'), c.time_due;
 $$;
 grant execute on function salon_week_report(text, date) to anon;
 
 -- ─────────────────────────────────────────────
--- 10) ADMIN del catálogo (protegido por PIN maestro)
---     ⚠️ REEMPLAZA CAMBIA_ESTE_PIN por tu PIN maestro en las 2 funciones
+-- 11) ADMIN del catálogo — protegido con TU PIN (7315)
+--     No se otorga a anon: solo se usa desde este editor SQL.
+--     Ejemplo para cambiar la hora de una tarea:
+--       select salon_admin_upsert_task('7315','loza','Repasar loza','glass',
+--              '16:00','media',null,false,true,array['BC1','BC2'],32);
 -- ─────────────────────────────────────────────
 create or replace function salon_admin_upsert_task(
   p_master text, p_id text, p_name text, p_icon text, p_time text,
@@ -276,46 +298,28 @@ create or replace function salon_admin_upsert_task(
   p_locals text[], p_sort int
 ) returns void language plpgsql security definer set search_path = public as $$
 begin
-  if p_master <> 'CAMBIA_ESTE_PIN' then raise exception 'no autorizado'; end if;
-  insert into salon_task_catalog (id, name, icon, time, priority, days, is_break, photo_required, locals, sort_order)
+  if not exists (select 1 from people where name='Jonathan Fosk' and pin=p_master and active)
+    then raise exception 'no autorizado'; end if;
+  insert into salon_task_catalog (id, name, icon, time_due, priority, days, is_break, photo_required, locals, sort_order)
        values (p_id, p_name, p_icon, p_time, p_priority, p_days, p_is_break, p_photo_required, coalesce(p_locals, array['BC1','BC2']), coalesce(p_sort,0))
   on conflict (id) do update set
-       name = excluded.name, icon = excluded.icon, time = excluded.time,
+       name = excluded.name, icon = excluded.icon, time_due = excluded.time_due,
        priority = excluded.priority, days = excluded.days, is_break = excluded.is_break,
        photo_required = excluded.photo_required, locals = excluded.locals, sort_order = excluded.sort_order;
 end $$;
-grant execute on function salon_admin_upsert_task(text,text,text,text,text,text,text[],boolean,boolean,text[],int) to anon;
 
 create or replace function salon_admin_set_task_active(p_master text, p_id text, p_active boolean)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if p_master <> 'CAMBIA_ESTE_PIN' then raise exception 'no autorizado'; end if;
+  if not exists (select 1 from people where name='Jonathan Fosk' and pin=p_master and active)
+    then raise exception 'no autorizado'; end if;
   update salon_task_catalog set active = p_active where id = p_id;
 end $$;
-grant execute on function salon_admin_set_task_active(text,text,boolean) to anon;
-
--- ─────────────────────────────────────────────
--- 11) SINCRONIZAR ROSTER CON EL ORGANIGRAMA
---     Al 29-jul-2026 el organigrama tiene 2 garzonas que NO existen en
---     `people` (por lo tanto no pueden entrar a ninguna app), y 1 persona
---     en `people` que ya no está en el organigrama.
---     Revisa los PINs antes de correr — son nuevos, los elegí yo.
--- ─────────────────────────────────────────────
-insert into people (name, role, local, station, pin, active)
-select * from (values
-  ('Catalina Jaque','Garzona Part Time','AMBOS','S','4812',true),
-  ('Francisca Ortiz','Garzona Part Time','AMBOS','S','5237',true)
-) as v(name,role,local,station,pin,active)
-where not exists (select 1 from people p where p.name = v.name);
-
--- Maria Paula Rincon ya no aparece en el organigrama → desactivar.
--- Comenta esta línea si sigue trabajando.
-update people set active = false where name = 'Maria Paula Rincon';
 
 -- ─────────────────────────────────────────────
 -- 12) VERIFICACIÓN
---     Esperado: 16 tareas · 2 jefes de garzones · 11 personas de salón
+--     Esperado: 16 tareas · 3 pueden asignar · 11 personas de salón
 -- ─────────────────────────────────────────────
 select count(*) as tareas_en_catalogo from salon_task_catalog;
 select id, name, role from people where salon_can_assign(id) order by name;
-select id, name, role, local from people where station='S' and active order by name;
+select id, name, role, local from people where station = 'S' and active order by name;
