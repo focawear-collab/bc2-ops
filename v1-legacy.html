@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>BC2 Operaciones</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ð</text></svg>">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.0/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+/* âââââââââââââââââââ ICON COMPONENTS âââââââââââââââââââ */
+const Icon = ({ name, size = 16 }) => {
+  const icons = {
+    calendar: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+    clock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    user: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+    check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+    coffee: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a2 2 0 1 1 0 4H4"/></svg>,
+    glass: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.2 22H8.8a2 2 0 0 1-2-1.79L5 3h14l-1.81 17.21A2 2 0 0 1 15.2 22Z"/><path d="M6 12a5 5 0 0 1 6 0 5 5 0 0 0 6 0"/></svg>,
+    store: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>,
+    sparkles: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+    monitor: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>,
+    rocket: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09Z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2Z"/></svg>,
+    utensils: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
+    package: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
+    cart: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>,
+    bath: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><line x1="10" x2="8" y1="5" y2="7"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="7" x2="7" y1="19" y2="21"/><line x1="17" x2="17" y1="19" y2="21"/></svg>,
+    brain: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>,
+    settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+    x: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+    plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+    trash: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+    edit: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+    save: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>,
+    refresh: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+    checksq: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>,
+  };
+  return icons[name] || icons.check;
+};
+
+/* âââââââââââââââââââ CONFIG âââââââââââââââââââ */
+const DEFAULT_STAFF = [
+  { id: 'mariangel', name: 'Mariangel', schedule: '11:00 - 20:30', role: 'Coordinadora', color: 'blue', isFullTime: true },
+  { id: 'cristobal', name: 'Cristobal', schedule: '12:00 - 16:00', role: 'Part-time', color: 'emerald', isFullTime: false },
+  { id: 'sofia', name: 'Sofia', schedule: '12:00 - 16:00', role: 'Part-time', color: 'purple', isFullTime: false },
+  { id: 'ender', name: 'Ender', schedule: '12:00 - 16:00', role: 'Part-time', color: 'orange', isFullTime: false },
+];
+
+const DEFAULT_TASKS = [
+  { id: 'te_limonada', name: 'Produccion Te y Limonada', icon: 'glass', time: '14:30', priority: 'high' },
+  { id: 'visicooler', name: 'Limpieza Visicooler', icon: 'store', time: '15:00', priority: 'medium' },
+  { id: 'barrer', name: 'Barrer y Limpiar Bases', icon: 'sparkles', time: '15:00', priority: 'high' },
+  { id: 'ventanales', name: 'Ventanales', icon: 'rocket', time: '15:00', priority: 'medium' },
+  { id: 'aseo_cocina', name: 'Aseo Cocina y Salon', icon: 'bath', time: '15:30', priority: 'high' },
+  { id: 'fifo_bebidas', name: 'FIFO y Recarga Bebidas', icon: 'package', time: '14:30', priority: 'high' },
+  { id: 'cubiertos', name: 'Cubiertos y Take Away', icon: 'utensils', time: '14:30', priority: 'medium' },
+  { id: 'mesas_pisos', name: 'Mesas, Pisos y Bancos', icon: 'checksq', time: 'cierre', priority: 'low' },
+  { id: 'carrito_cajas', name: 'Carrito y Cajas', icon: 'cart', time: 'cierre', priority: 'low' },
+];
+
+const DAY_NAMES = ['lunes','martes','miercoles','jueves','viernes','sabado'];
+const DAY_LABELS = ['Lun','Mar','Mie','Jue','Vie','Sab'];
+const DAY_FULL = ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+const COLORS = ['blue','emerald','purple','orange','rose','cyan','amber','indigo'];
+
+/* âââââââââââââââââââ COLOR CLASSES âââââââââââââââââââ */
+const CC = {
+  blue:    { card:'border-blue-200 bg-blue-50', hdr:'bg-blue-600 text-white', hdrAlt:'bg-blue-50/80', dot:'bg-blue-500', badge:'bg-blue-100 text-blue-700' },
+  emerald: { card:'border-emerald-200 bg-emerald-50', hdr:'bg-emerald-600 text-white', hdrAlt:'bg-emerald-50/80', dot:'bg-emerald-500', badge:'bg-emerald-100 text-emerald-700' },
+  purple:  { card:'border-purple-200 bg-purple-50', hdr:'bg-purple-600 text-white', hdrAlt:'bg-purple-50/80', dot:'bg-purple-500', badge:'bg-purple-100 text-purple-700' },
+  orange:  { card:'border-orange-200 bg-orange-50', hdr:'bg-orange-600 text-white', hdrAlt:'bg-orange-50/80', dot:'bg-orange-500', badge:'bg-orange-100 text-orange-700' },
+  rose:    { card:'border-rose-200 bg-rose-50', hdr:'bg-rose-600 text-white', hdrAlt:'bg-rose-50/80', dot:'bg-rose-500', badge:'bg-rose-100 text-rose-700' },
+  cyan:    { card:'border-cyan-200 bg-cyan-50', hdr:'bg-cyan-600 text-white', hdrAlt:'bg-cyan-50/80', dot:'bg-cyan-500', badge:'bg-cyan-100 text-cyan-700' },
+  amber:   { card:'border-amber-200 bg-amber-50', hdr:'bg-amber-600 text-white', hdrAlt:'bg-amber-50/80', dot:'bg-amber-500', badge:'bg-amber-100 text-amber-700' },
+  indigo:  { card:'border-indigo-200 bg-indigo-50', hdr:'bg-indigo-600 text-white', hdrAlt:'bg-indigo-50/80', dot:'bg-indigo-500', badge:'bg-indigo-100 text-indigo-700' },
+};
+
+/* âââââââââââââââââââ DATE UTILS âââââââââââââââââââ */
+function getMonday(d) {
+  const date = new Date(d); const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
+function fmtDate(date) {
+  const m = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return `${date.getDate()} de ${m[date.getMonth()]}`;
+}
+function getWeekDates(mon) { return DAY_FULL.map((n,i) => { const d = new Date(mon); d.setDate(d.getDate()+i); return `${n} ${fmtDate(d)}`; }); }
+function toISODate(d) { return d.toISOString().split('T')[0]; }
+
+/* âââââââââââââââââââ ROTATION ALGORITHM âââââââââââââââââââ */
+function generateSchedule(staff, tasks, days) {
+  const pts = staff.filter(s => !s.isFullTime);
+  const fts = staff.filter(s => s.isFullTime);
+  const svcTasks = tasks.filter(t => t.time !== 'cierre');
+  const closeTasks = tasks.filter(t => t.time === 'cierre');
+  const schedule = {};
+
+  days.forEach((dayName, dayIdx) => {
+    const dayBlocks = [];
+    const rotated = [...svcTasks];
+    // Rotate tasks based on day
+    for (let r = 0; r < dayIdx; r++) rotated.push(rotated.shift());
+    let ti = 0;
+
+    // Part-timers
+    pts.forEach((p) => {
+      const tareas = [];
+      tareas.push({ hora: p.schedule.split(' - ')[0], desc: 'Servicio en Salon', icon: 'user', isBreak: false, important: false });
+      // 2 tasks per PT
+      for (let t = 0; t < 2 && ti < rotated.length; t++, ti++) {
+        const task = rotated[ti];
+        tareas.push({ hora: task.time, desc: task.name, icon: task.icon, isBreak: false, important: task.priority === 'high', taskId: task.id });
+      }
+      tareas.push({ hora: p.schedule.split(' - ')[1], desc: 'FIN TURNO / COLACION', icon: 'coffee', isBreak: true, important: false });
+      dayBlocks.push({ usuario: p.id, isLeader: false, tareas });
+    });
+
+    // Full-timers
+    fts.forEach((p) => {
+      const tareas = [];
+      tareas.push({ hora: p.schedule.split(' - ')[0], desc: 'Apertura y Organizacion', icon: 'monitor', isBreak: false, important: false });
+      tareas.push({ hora: '12:00', desc: 'Servicio en Salon', icon: 'user', isBreak: false, important: false });
+      // Remaining service tasks
+      while (ti < rotated.length) {
+        const task = rotated[ti]; ti++;
+        tareas.push({ hora: task.time, desc: task.name, icon: task.icon, isBreak: false, important: task.priority === 'high', taskId: task.id });
+      }
+      // Closing tasks
+      closeTasks.forEach(task => {
+        tareas.push({ hora: 'Cierre', desc: task.name, icon: task.icon, isBreak: false, important: false, taskId: task.id });
+      });
+      tareas.push({ hora: '16:30', desc: 'COLACION', icon: 'coffee', isBreak: true, important: false });
+      tareas.push({ hora: p.schedule.split(' - ')[1], desc: 'Cierre de Turno', icon: 'checksq', isBreak: false, important: false });
+      dayBlocks.push({ usuario: p.id, isLeader: true, tareas });
+    });
+
+    dayBlocks.sort((a, b) => (b.isLeader ? 1 : 0) - (a.isLeader ? 1 : 0));
+    schedule[dayName] = dayBlocks;
+  });
+  return schedule;
+}
+
+/* âââââââââââââââââââ SMART PRIORITIES âââââââââââââââââââ */
+function getPriorities(dayName, idx, sched, staff) {
+  const day = sched[dayName]; if (!day) return [];
+  const p = [];
+  if (idx === 0) p.push('Limpieza profunda post-fin de semana: revisar salon, banos y cocina antes de abrir.');
+  if (idx >= 4) p.push('Dia de alto trafico: preparar mise en place extra y confirmar stock de insumos criticos.');
+  const hp = [];
+  day.forEach(b => b.tareas.filter(t => t.important).forEach(t => {
+    const who = staff.find(s => s.id === b.usuario);
+    hp.push(`${t.desc} (${who?.name || '?'})`);
+  }));
+  if (hp.length) p.push(`Tareas criticas: ${hp.join(', ')}. Supervisar antes de las 15:30.`);
+  p.push('Verificar FIFO en bodega y visicooler. Revisar fechas de vencimiento de salsas y bebestibles.');
+  if (idx % 2 === 0) p.push('Revisar limpieza de ventanales y banquitos del area exterior.');
+  else p.push('Verificar reposicion de cubiertos, servilletas y take away antes del rush.');
+  return p.slice(0, 4);
+}
+
+/* âââââââââââââââââââ LOCAL STORAGE HELPERS âââââââââââââââââââ */
+function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
+function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+/* âââââââââââââââââââ FIREBASE SYNC âââââââââââââââââââ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBXn6K6_eDhgflbG_ek5s4Qf5N4KxOnXyo",
+  authDomain: "blackchicken-ops.firebaseapp.com",
+  databaseURL: "https://blackchicken-ops-default-rtdb.firebaseio.com",
+  projectId: "blackchicken-ops",
+  storageBucket: "blackchicken-ops.firebasestorage.app",
+  messagingSenderId: "613211123193",
+  appId: "1:613211123193:web:5f3b273ddb6da3c65aa128"
+};
+const FB_PREFIX = 'bc2';
+let _db = null;
+function getDB() {
+  if (_db) return _db;
+  try {
+    if (!window.firebase) return null;
+    if (FIREBASE_CONFIG.apiKey === "REPLACE_ME") return null;
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+    return _db;
+  } catch(e) { return null; }
+}
+async function fbLoad(key) {
+  const db = getDB(); if (!db) return null;
+  try { const s = await db.ref(FB_PREFIX + '/' + key).once('value'); return s.val(); } catch { return null; }
+}
+function fbSave(key, val) {
+  const db = getDB(); if (!db) return;
+  try { db.ref(FB_PREFIX + '/' + key).set(val).catch(()=>{}); } catch {}
+}
+
+
+/* âââââââââââââââââââ SETTINGS PANEL âââââââââââââââââââ */
+const SettingsPanel = ({ staff, activeDays, weekStart, setWeekStart, setActiveDays, addStaff, removeStaff, updateStaff, regenerate, onClose }) => (
+  <div className="fixed inset-0 z-[100] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl fade-in" onClick={e => e.stopPropagation()}>
+      <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex justify-between items-center rounded-t-3xl z-10">
+        <h2 className="text-lg font-black uppercase tracking-tight">Configuracion</h2>
+        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full"><Icon name="x" size={18}/></button>
+      </div>
+      <div className="p-4 space-y-5">
+        {/* Week */}
+        <div>
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 block">Semana</label>
+          <input type="date" value={toISODate(weekStart)}
+            onChange={e => setWeekStart(getMonday(new Date(e.target.value)))}
+            className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"/>
+        </div>
+        {/* Days */}
+        <div>
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 block">Dias Activos</label>
+          <div className="flex gap-2 flex-wrap">
+            {DAY_NAMES.map((d,i) => (
+              <button key={d} onClick={() => {
+                if (activeDays.includes(d)) { if (activeDays.length > 1) setActiveDays(activeDays.filter(x => x !== d)); }
+                else { setActiveDays([...activeDays, d].sort((a,b) => DAY_NAMES.indexOf(a) - DAY_NAMES.indexOf(b))); }
+              }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeDays.includes(d) ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                {DAY_LABELS[i]}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Staff */}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Equipo</label>
+            <button onClick={addStaff} className="flex items-center gap-1 text-[10px] font-bold text-blue-600"><Icon name="plus" size={12}/> Agregar</button>
+          </div>
+          <div className="space-y-2">
+            {staff.map(p => (
+              <div key={p.id} className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div className="flex gap-2 items-center mb-2">
+                  <div className={`w-3 h-3 rounded-full ${CC[p.color]?.dot || 'bg-slate-400'}`}/>
+                  <input type="text" value={p.name} onChange={e => updateStaff(p.id,'name',e.target.value)}
+                    className="flex-1 bg-transparent font-bold text-sm border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none px-1"/>
+                  <button onClick={() => removeStaff(p.id)} className="text-slate-300 hover:text-red-500"><Icon name="trash" size={14}/></button>
+                </div>
+                <div className="flex gap-2 items-center flex-wrap">
+                  <input type="text" value={p.schedule} onChange={e => updateStaff(p.id,'schedule',e.target.value)}
+                    className="flex-1 min-w-[120px] bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium"/>
+                  <select value={p.isFullTime?'full':'part'} onChange={e => updateStaff(p.id,'isFullTime',e.target.value==='full')}
+                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium">
+                    <option value="full">Full-time</option><option value="part">Part-time</option>
+                  </select>
+                  <select value={p.color} onChange={e => updateStaff(p.id,'color',e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium">
+                    {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Regen */}
+        <button onClick={regenerate}
+          className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl font-black text-xs uppercase tracking-wider hover:bg-slate-800 transition-colors">
+          <Icon name="refresh" size={14}/> Regenerar Rotacion
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+/* âââââââââââââââââââ MAIN APP âââââââââââââââââââ */
+const App = () => {
+  const [staff, setStaff] = useState(() => loadJSON('bc2_staff', DEFAULT_STAFF));
+  const [tasks] = useState(() => loadJSON('bc2_tasks', DEFAULT_TASKS));
+  const [weekStart, setWeekStart] = useState(() => { const w = localStorage.getItem('bc2_ws'); return w ? new Date(w) : getMonday(new Date()); });
+  const [activeDays, setActiveDays] = useState(() => loadJSON('bc2_days', DAY_NAMES.slice(0,6)));
+  const [activeTab, setActiveTab] = useState(() => {
+    const t = new Date().getDay(); const i = t === 0 ? 5 : t - 1;
+    const days = loadJSON('bc2_days', DAY_NAMES.slice(0,6));
+    const d = DAY_NAMES[i]; return days.includes(d) ? d : days[0] || 'lunes';
+  });
+  const [completed, setCompleted] = useState(() => loadJSON('bc2_done', {}));
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAi, setShowAi] = useState(false);
+  const [customSched, setCustomSched] = useState(() => loadJSON('bc2_custom', null));
+  const [editMode, setEditMode] = useState(false);
+  const [filterStaff, setFilterStaff] = useState(() => localStorage.getItem('bc2_filter') || null);
+
+  // Persist
+  useEffect(() => { saveJSON('bc2_staff', staff); fbSave('staff', staff); }, [staff]);
+  useEffect(() => { localStorage.setItem('bc2_ws', weekStart.toISOString()); }, [weekStart]);
+  useEffect(() => { saveJSON('bc2_days', activeDays); fbSave('activeDays', activeDays); }, [activeDays]);
+  useEffect(() => { saveJSON('bc2_done', completed); fbSave('done', completed); }, [completed]);
+  useEffect(() => { if (customSched) { saveJSON('bc2_custom', customSched); fbSave('customSched', customSched); } }, [customSched]);
+
+  // Cargar datos desde Firebase al abrir la app
+  useEffect(() => {
+    (async () => {
+      const [fbDone, fbStaff, fbDays, fbCustom] = await Promise.all([
+        fbLoad('done'), fbLoad('staff'), fbLoad('activeDays'), fbLoad('customSched')
+      ]);
+      if (fbDone && Object.keys(fbDone).length > 0) setCompleted(fbDone);
+      if (fbStaff && fbStaff.length > 0) setStaff(fbStaff);
+      if (fbDays && fbDays.length > 0) setActiveDays(fbDays);
+      if (fbCustom) setCustomSched(fbCustom);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (filterStaff) localStorage.setItem('bc2_filter', filterStaff);
+    else localStorage.removeItem('bc2_filter');
+  }, [filterStaff]);
+
+  const autoSched = useMemo(() => generateSchedule(staff, tasks, activeDays), [staff, tasks, activeDays]);
+  const schedule = customSched || autoSched;
+  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
+  const dayIdx = activeDays.indexOf(activeTab);
+  const dateLabel = weekDates[DAY_NAMES.indexOf(activeTab)] || '';
+  const priorities = useMemo(() => getPriorities(activeTab, dayIdx, schedule, staff), [activeTab, dayIdx, schedule, staff]);
+
+  const toggleDone = useCallback((day, bi, ti) => {
+    const k = `${toISODate(weekStart)}_${day}_${bi}_${ti}`;
+    setCompleted(p => ({...p, [k]: !p[k]}));
+  }, [weekStart]);
+  const isDone = useCallback((day, bi, ti) => {
+    return !!completed[`${toISODate(weekStart)}_${day}_${bi}_${ti}`];
+  }, [completed, weekStart]);
+
+  const getDayProg = (day) => {
+    const bl = schedule[day]; if (!bl) return 0;
+    let tot=0, done=0;
+    bl.forEach((b,bi) => b.tareas.forEach((t,ti) => { if (!t.isBreak) { tot++; if (isDone(day,bi,ti)) done++; } }));
+    return tot === 0 ? 0 : Math.round(done/tot*100);
+  };
+
+  const swapTask = (day, fromB, fromT, toB) => {
+    const ns = {...schedule}; const dd = [...ns[day]];
+    const fb = {...dd[fromB], tareas:[...dd[fromB].tareas]};
+    const tb = {...dd[toB], tareas:[...dd[toB].tareas]};
+    const task = fb.tareas[fromT]; fb.tareas.splice(fromT,1);
+    const ins = tb.tareas.findIndex(t => t.isBreak);
+    ins >= 0 ? tb.tareas.splice(ins, 0, task) : tb.tareas.push(task);
+    dd[fromB] = fb; dd[toB] = tb; ns[day] = dd;
+    setCustomSched(ns);
+  };
+
+  // Staff mgmt
+  const addStaff = () => {
+    const ci = staff.length % COLORS.length;
+    setStaff([...staff, { id: `s${Date.now()}`, name: 'Nuevo', schedule: '12:00 - 16:00', role: 'Part-time', color: COLORS[ci], isFullTime: false }]);
+    setCustomSched(null);
+  };
+  const removeStaff = (id) => { setStaff(staff.filter(s => s.id !== id)); setCustomSched(null); };
+  const updateStaff = (id, f, v) => { setStaff(staff.map(s => s.id === id ? {...s, [f]: v} : s)); if (f !== 'name') setCustomSched(null); };
+  const regenerate = () => { setCustomSched(null); localStorage.removeItem('bc2_custom'); };
+
+  return (
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 pb-8 text-left">
+      {/* HEADER */}
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
+        <div className="max-w-5xl mx-auto flex flex-col gap-2">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-black tracking-tighter uppercase">Black Chicken 2</h1>
+            <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-full hover:bg-slate-100">
+              <Icon name="settings" size={18}/>
+            </button>
+          </div>
+
+          {/* Week nav */}
+          <div className="flex items-center justify-between">
+            <button onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate()-7); setWeekStart(d); setCustomSched(null); }}
+              className="text-lg font-bold text-slate-300 hover:text-slate-700 px-2">&lsaquo;</button>
+            <button onClick={() => { setWeekStart(getMonday(new Date())); setCustomSched(null); }}
+              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700">
+              <Icon name="calendar" size={13}/>
+              <span className="text-[10px] font-bold uppercase tracking-wide">Semana del {fmtDate(weekStart)}</span>
+            </button>
+            <button onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate()+7); setWeekStart(d); setCustomSched(null); }}
+              className="text-lg font-bold text-slate-300 hover:text-slate-700 px-2">&rsaquo;</button>
+          </div>
+
+          {/* Day tabs */}
+          <div className="flex gap-1 overflow-x-auto no-scrollbar">
+            {activeDays.map(day => {
+              const di = DAY_NAMES.indexOf(day);
+              const prog = getDayProg(day);
+              return (
+                <button key={day} onClick={() => { setActiveTab(day); setShowAi(false); }}
+                  className={`flex flex-col items-center px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all min-w-[52px] ${
+                    activeTab === day ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                  }`}>
+                  <span>{DAY_LABELS[di]}</span>
+                  {prog > 0 && (
+                    <div className={`w-full h-0.5 rounded-full mt-1 ${activeTab === day ? 'bg-white/30' : 'bg-slate-300'}`}>
+                      <div className={`h-full rounded-full ${activeTab === day ? 'bg-white' : 'bg-emerald-500'}`} style={{width:`${prog}%`}}/>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Staff Filter */}
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <button onClick={() => setFilterStaff(null)}
+              className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all ${
+                !filterStaff ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}>
+              Todos
+            </button>
+            {staff.map(p => {
+              const c = CC[p.color] || CC.blue;
+              const active = filterStaff === p.id;
+              return (
+                <button key={p.id} onClick={() => setFilterStaff(active ? null : p.id)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all ${
+                    active ? c.hdr : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}>
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Date + buttons */}
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{dateLabel}</span>
+            <div className="flex gap-2">
+              {editMode ? (
+                <button onClick={() => setEditMode(false)}
+                  className="flex items-center gap-1 bg-emerald-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                  <Icon name="save" size={12}/> Listo
+                </button>
+              ) : (
+                <button onClick={() => setEditMode(true)}
+                  className="flex items-center gap-1 bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-[10px] font-black uppercase hover:bg-slate-300">
+                  <Icon name="edit" size={12}/> Editar
+                </button>
+              )}
+              <button onClick={() => setShowAi(!showAi)}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all">
+                <Icon name="brain" size={14}/> Foco
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {showSettings && <SettingsPanel staff={staff} activeDays={activeDays} weekStart={weekStart}
+        setWeekStart={(d) => { setWeekStart(d); setCustomSched(null); }} setActiveDays={setActiveDays}
+        addStaff={addStaff} removeStaff={removeStaff} updateStaff={updateStaff} regenerate={regenerate}
+        onClose={() => setShowSettings(false)} />}
+
+      <main className="max-w-5xl mx-auto p-3 flex flex-col gap-4">
+        {/* AI Panel */}
+        {showAi && (
+          <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-xl border-l-4 border-blue-500 fade-in">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-2">
+                <Icon name="brain" size={14}/> Foco del Dia - {DAY_FULL[DAY_NAMES.indexOf(activeTab)]}
+              </h3>
+              <button onClick={() => setShowAi(false)} className="text-slate-500 hover:text-white"><Icon name="x" size={14}/></button>
+            </div>
+            <div className="space-y-2.5">
+              {priorities.map((p,i) => (
+                <div key={i} className="flex gap-2 items-start">
+                  <span className="text-[9px] font-black text-blue-400 mt-0.5 min-w-[16px]">{i+1}.</span>
+                  <p className="text-[11px] leading-relaxed text-slate-200 font-medium">{p}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Schedule Cards */}
+        {(() => {
+          const allBlocks = (schedule[activeTab] || []).map((bloque, bi) => ({ bloque, bi }));
+          const visibleBlocks = filterStaff ? allBlocks.filter(({ bloque }) => bloque.usuario === filterStaff) : allBlocks;
+          const gridClass = visibleBlocks.length === 1
+            ? 'grid grid-cols-1 max-w-xl mx-auto w-full gap-4'
+            : 'grid grid-cols-1 md:grid-cols-2 gap-4';
+          return (
+        <div className={gridClass}>
+          {visibleBlocks.map(({ bloque, bi }) => {
+            const person = staff.find(s => s.id === bloque.usuario);
+            if (!person) return null;
+            const c = CC[person.color] || CC.blue;
+            return (
+              <div key={bi} className={`rounded-2xl border-2 shadow-sm overflow-hidden ${c.card} ${bloque.isLeader ? 'ring-2 ring-blue-500/20' : ''} fade-in`}>
+                <div className={`p-4 flex justify-between items-center border-b border-black/5 ${bloque.isLeader ? c.hdr : c.hdrAlt}`}>
+                  <div>
+                    <p className={`text-[9px] font-black uppercase ${bloque.isLeader ? 'opacity-70' : 'text-slate-500'} mb-0.5`}>{person.role}</p>
+                    <h2 className={`text-lg font-black uppercase tracking-tight ${bloque.isLeader ? '' : 'text-slate-800'}`}>{person.name}</h2>
+                  </div>
+                  <p className={`text-[10px] font-bold flex items-center gap-1 ${bloque.isLeader ? '' : 'text-slate-500'}`}>
+                    <Icon name="clock" size={12}/> {person.schedule}
+                  </p>
+                </div>
+                <div className="p-2 space-y-1.5">
+                  {bloque.tareas.map((t, ti) => {
+                    const done = isDone(activeTab, bi, ti);
+                    return (
+                      <div key={ti} className={`flex gap-3 p-3 rounded-xl border transition-all ${
+                        t.isBreak ? 'bg-orange-100 border-orange-200 text-orange-900'
+                        : done ? 'bg-emerald-50 border-emerald-200 opacity-60'
+                        : t.important ? 'bg-white border-slate-300 shadow-sm'
+                        : 'bg-white/60 border-transparent'
+                      }`}>
+                        <div className="flex flex-col items-center min-w-[36px]">
+                          <span className="text-[9px] font-black text-slate-500">{t.hora}</span>
+                          <div className={`p-1.5 rounded-lg mt-1 ${t.isBreak ? 'bg-orange-200' : 'bg-slate-100'}`}>
+                            <Icon name={t.icon} size={16}/>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-bold leading-tight ${t.isBreak ? 'uppercase text-xs' : ''} ${done ? 'line-through' : ''}`}>{t.desc}</p>
+                          {t.important && !done && (
+                            <span className="text-[8px] font-black bg-slate-800 text-white px-1.5 py-0.5 rounded mt-1 inline-block uppercase tracking-tighter">Foco Prioritario</span>
+                          )}
+                          {editMode && !t.isBreak && (
+                            <div className="flex gap-1 mt-1.5 flex-wrap">
+                              {schedule[activeTab].map((ob, oi) => {
+                                if (oi === bi) return null;
+                                const op = staff.find(s => s.id === ob.usuario);
+                                return op ? (
+                                  <button key={oi} onClick={() => swapTask(activeTab, bi, ti, oi)}
+                                    className="text-[8px] font-bold bg-slate-200 hover:bg-slate-300 text-slate-600 px-1.5 py-0.5 rounded transition-colors">
+                                    â {op.name}
+                                  </button>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        {!t.isBreak && (
+                          <button onClick={() => toggleDone(activeTab, bi, ti)} className="flex items-center shrink-0">
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                              done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 bg-white hover:border-slate-400'
+                            }`}>
+                              {done && <Icon name="check" size={14}/>}
+                            </div>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+          );
+        })()}
+
+        {/* Weekly summary */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Resumen Semanal</h3>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            {activeDays.map(day => {
+              const di = DAY_NAMES.indexOf(day); const prog = getDayProg(day);
+              return (
+                <button key={day} onClick={() => setActiveTab(day)} className="text-center group">
+                  <p className="text-[9px] font-black uppercase text-slate-400 group-hover:text-slate-600">{DAY_LABELS[di]}</p>
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full mt-1">
+                    <div className={`h-full rounded-full transition-all ${prog === 100 ? 'bg-emerald-500' : prog > 0 ? 'bg-blue-500' : 'bg-slate-200'}`} style={{width:`${prog}%`}}/>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-500 mt-0.5">{prog}%</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </main>
+
+      <footer className="mt-4 text-center opacity-30">
+        <p className="text-[8px] font-black uppercase tracking-[0.4em]">Black Chicken 2 - Operaciones 2026</p>
+      </footer>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
