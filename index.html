@@ -4,24 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f0f0f">
-  <title>BC Operaciones · Tareas de Salón</title>
+  <title>BC · Planificación de Tareas de Salón</title>
   <link rel="icon" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.0/babel.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; background:#0f0f0f; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-    .fade-in { animation: fadeIn 0.25s ease-out; }
-    .gold { color:#D4A843; }
-    input, select, textarea { font-size: 16px; }
+    :root { --bg:#0f0f0f; --card:#141414; --card2:#1a1a1a; --line:#2a2a2a; --tx:#ffffff; --dim:#8b8b8b; --gold:#D4A843; }
+    html.light { --bg:#f4f4f5; --card:#ffffff; --card2:#fafafa; --line:#e4e4e7; --tx:#18181b; --dim:#71717a; --gold:#a17c1f; }
+    body { font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; background:var(--bg); color:var(--tx); }
+    .no-scrollbar::-webkit-scrollbar{display:none} .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeIn .25s ease-out}
+    .gold{color:var(--gold)} .bgold{background:var(--gold)}
+    .card{background:var(--card);border-color:var(--line)}
+    .card2{background:var(--card2);border-color:var(--line)}
+    .dim{color:var(--dim)}
+    input,select,textarea{font-size:16px}
   </style>
 </head>
 <body>
@@ -29,471 +31,222 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback } = React;
 
-/* ═══════════════ ICONOS ═══════════════ */
-const Icon = ({ name, size = 16 }) => {
-  const P = { width:size, height:size, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round" };
-  const icons = {
-    calendar: <svg {...P}><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
-    clock:    <svg {...P}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-    user:     <svg {...P}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-    users:    <svg {...P}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-    check:    <svg {...P}><path d="M20 6 9 17l-5-5"/></svg>,
-    coffee:   <svg {...P}><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a2 2 0 1 1 0 4H4"/></svg>,
-    glass:    <svg {...P}><path d="M15.2 22H8.8a2 2 0 0 1-2-1.79L5 3h14l-1.81 17.21A2 2 0 0 1 15.2 22Z"/><path d="M6 12a5 5 0 0 1 6 0 5 5 0 0 0 6 0"/></svg>,
-    store:    <svg {...P}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>,
-    sparkles: <svg {...P}><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
-    monitor:  <svg {...P}><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>,
-    utensils: <svg {...P}><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
-    package:  <svg {...P}><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
-    cart:     <svg {...P}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>,
-    bath:     <svg {...P}><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.68 3 4 3.68 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><line x1="10" x2="8" y1="5" y2="7"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="7" x2="7" y1="19" y2="21"/><line x1="17" x2="17" y1="19" y2="21"/></svg>,
-    broom:    <svg {...P}><path d="M13 11 9.5 7.5"/><path d="M18 2 12 8"/><path d="m9 9-5 5c-1 1-1 3 0 4l1 1c1 1 3 1 4 0l5-5Z"/><path d="M5 21h14"/></svg>,
-    window:   <svg {...P}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>,
-    droplet:  <svg {...P}><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>,
-    fridge:   <svg {...P}><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M5 10h14"/><path d="M9 6v1"/><path d="M9 14v1"/></svg>,
-    truck:    <svg {...P}><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>,
-    settings: <svg {...P}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-    x:        <svg {...P}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-    plus:     <svg {...P}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
-    trash:    <svg {...P}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
-    refresh:  <svg {...P}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
-    checksq:  <svg {...P}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>,
-    send:     <svg {...P}><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
-    logout:   <svg {...P}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
-    list:     <svg {...P}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
-    grid:     <svg {...P}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>,
-    chart:    <svg {...P}><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
-    alert:    <svg {...P}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
-    copy:     <svg {...P}><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
-    download: <svg {...P}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-    back:     <svg {...P}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
-    home:     <svg {...P}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  };
-  return icons[name] || icons.checksq;
-};
-const ICON_NAMES = ['sparkles','broom','checksq','window','droplet','package','utensils','glass','bath','store','fridge','monitor','cart','coffee','truck','user','clock','list'];
+/* ═══════════ SUPABASE (mismo backend que bc-checklist) ═══════════ */
+const SUPA_URL = 'https://pwwmhazqakhweugosugb.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3d21oYXpxYWtod2V1Z29zdWdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzgwMDIsImV4cCI6MjA5ODUxNDAwMn0.8tazxmoo5O5JVvqaZNsz8yLI2EVYvQ0dR4a52U5K16s';
+const SB_H = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' };
+async function sbGet(p) { try { const r = await fetch(SUPA_URL + '/rest/v1/' + p, { headers: SB_H }); return r.ok ? await r.json() : []; } catch { return []; } }
+async function sbRpc(fn, b) {
+  try {
+    const r = await fetch(SUPA_URL + '/rest/v1/rpc/' + fn, { method:'POST', headers:SB_H, body:JSON.stringify(b) });
+    if (!r.ok) return { error: (await r.json().catch(()=>({}))).message || ('HTTP ' + r.status) };
+    const t = await r.text();
+    return { data: t ? JSON.parse(t) : null };
+  } catch (e) { return { error: String(e) }; }
+}
 
-/* ═══════════════ LOCALES ═══════════════ */
+/* ═══════════ CONSTANTES ═══════════ */
 const LOCALES = {
-  bc1: {
-    id:'bc1', num:'1', name:'Black Chicken 1', dir:'Cerro El Plomo 5931',
-    horario:'Lun a Dom · 12:00 - 21:45', openDays:7,
-    staff: [
-      { id:'mariangel', name:'Mariangel', schedule:'11:00 - 20:30', role:'Jefa de Garzones', color:'gold',    pin:'1580', isAdmin:true  },
-      { id:'sara',      name:'Sara',      schedule:'12:00 - 20:30', role:'Garzona Full Time',color:'emerald', pin:'9766', isAdmin:false },
-      { id:'ignacio',   name:'Ignacio',   schedule:'12:00 - 20:30', role:'Garzón Full Time', color:'purple',  pin:'3594', isAdmin:false },
-      { id:'mariluz',   name:'Mariluz',   schedule:'12:00 - 20:30', role:'Garzona Full Time',color:'orange',  pin:'2724', isAdmin:false },
-      { id:'mpaula',    name:'María Paula',schedule:'12:00 - 16:00',role:'Garzona Part Time',color:'rose',    pin:'1676', isAdmin:false },
-      { id:'kimberly',  name:'Kimberly',  schedule:'18:00 - 21:45', role:'Garzona Part Time',color:'cyan',    pin:'7767', isAdmin:false },
-    ],
-    extra: [ { id:'delivery_check', name:'Revisión Pedidos Delivery', icon:'truck', time:'13:00', priority:'alta', days:null } ],
-  },
-  bc2: {
-    id:'bc2', num:'2', name:'Black Chicken 2', dir:'Cerro El Plomo 5630',
-    horario:'Lun a Vie · 12:00 - 20:15', openDays:6,
-    staff: [
-      { id:'cristobal',   name:'Cristóbal',    schedule:'11:00 - 20:30', role:'Jefe de Garzones', color:'gold',    pin:'7490', isAdmin:true  },
-      { id:'ender',       name:'Ender',        schedule:'12:00 - 20:15', role:'Garzón Full Time', color:'emerald', pin:'3664', isAdmin:false },
-      { id:'mariangelica',name:'Mariangélica', schedule:'12:00 - 16:00', role:'Garzona Part Time',color:'purple',  pin:'2767', isAdmin:false },
-    ],
-    extra: [],
-  },
+  BC1: { id:'BC1', num:'1', name:'Black Chicken 1', dir:'Cerro El Plomo 5931', horario:'Lun a Dom · 12:00 - 21:45', openDays:7 },
+  BC2: { id:'BC2', num:'2', name:'Black Chicken 2', dir:'Cerro El Plomo 5630', horario:'Lun a Vie · 12:00 - 20:15', openDays:6 },
 };
-
-/* PIN maestro (dueño): ve y edita todo en ambos locales. Editable en Configuración. */
-const DEFAULT_MASTER_PIN = '8080';
-
-/* ═══════════════ CATÁLOGO BASE ═══════════════ */
-const BASE_CATALOG = [
-  { id:'descanso',     name:'Descanso',                                  icon:'coffee',   time:'16:00',  priority:'media', days:null, isBreak:true },
-  { id:'barrer_piso',  name:'Barrer el piso',                            icon:'broom',    time:'15:00',  priority:'alta',  days:null },
-  { id:'base_mesas',   name:'Limpiar base de las mesas',                 icon:'checksq',  time:'15:00',  priority:'media', days:null },
-  { id:'bancos',       name:'Limpiar bancos',                            icon:'checksq',  time:'15:00',  priority:'media', days:null },
-  { id:'bebestibles',  name:'Rellenar bebestibles',                      icon:'package',  time:'14:30',  priority:'alta',  days:null },
-  { id:'ventanales',   name:'Limpiar ventanales',                        icon:'window',   time:'15:00',  priority:'media', days:null },
-  { id:'pantallas',    name:'Limpiar pantallas',                         icon:'monitor',  time:'15:30',  priority:'media', days:null },
-  { id:'take_away',    name:'Rellenar take away',                        icon:'utensils', time:'14:30',  priority:'alta',  days:null },
-  { id:'mesones',      name:'Limpiar mesones',                           icon:'bath',     time:'15:30',  priority:'alta',  days:null },
-  { id:'loza',         name:'Repasar loza',                              icon:'glass',    time:'15:30',  priority:'media', days:null },
-  { id:'detras_refri', name:'Limpiar detrás del refrigerador de bebidas',icon:'fridge',   time:'15:00',  priority:'alta',  days:['viernes'] },
-  { id:'te_limonada',  name:'Producción Té y Limonada',                  icon:'glass',    time:'14:30',  priority:'alta',  days:null },
-  { id:'visicooler',   name:'Limpieza Visicooler',                       icon:'store',    time:'15:00',  priority:'media', days:null },
-  { id:'aseo_salon',   name:'Aseo Cocina y Salón',                       icon:'bath',     time:'15:30',  priority:'alta',  days:null },
-  { id:'carrito',      name:'Carrito y Cajas',                           icon:'cart',     time:'cierre', priority:'baja',  days:null },
-];
-const defaultCatalog = (locId) => [...BASE_CATALOG, ...(LOCALES[locId].extra || [])];
-
 const ALL_DAYS   = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
 const DAY_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DAY_FULL   = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
-const COLORS = ['gold','blue','emerald','purple','orange','rose','cyan','indigo'];
+const PALETTE = ['#D4A843','#3b82f6','#10b981','#a855f7','#f97316','#f43f5e','#06b6d4','#6366f1'];
+const colorOf = (i) => PALETTE[i % PALETTE.length];
+const MASTER_PIN = '8080';   /* Jonathan · debe coincidir con el PIN maestro del SQL */
 
-const CC = {
-  gold:    { bd:'border-[#D4A843]/40', bg:'bg-[#D4A843]/10', txt:'text-[#D4A843]', dot:'bg-[#D4A843]' },
-  blue:    { bd:'border-blue-500/40',    bg:'bg-blue-500/10',    txt:'text-blue-400',    dot:'bg-blue-500' },
-  emerald: { bd:'border-emerald-500/40', bg:'bg-emerald-500/10', txt:'text-emerald-400', dot:'bg-emerald-500' },
-  purple:  { bd:'border-purple-500/40',  bg:'bg-purple-500/10',  txt:'text-purple-400',  dot:'bg-purple-500' },
-  orange:  { bd:'border-orange-500/40',  bg:'bg-orange-500/10',  txt:'text-orange-400',  dot:'bg-orange-500' },
-  rose:    { bd:'border-rose-500/40',    bg:'bg-rose-500/10',    txt:'text-rose-400',    dot:'bg-rose-500' },
-  cyan:    { bd:'border-cyan-500/40',    bg:'bg-cyan-500/10',    txt:'text-cyan-400',    dot:'bg-cyan-500' },
-  indigo:  { bd:'border-indigo-500/40',  bg:'bg-indigo-500/10',  txt:'text-indigo-400',  dot:'bg-indigo-500' },
-};
-const cc = (c) => CC[c] || CC.gold;
-
-/* ═══════════════ FECHAS ═══════════════ */
-function getMonday(d) {
-  const date = new Date(d); const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  const r = new Date(date.setDate(diff)); r.setHours(0,0,0,0); return r;
+/* ═══════════ FECHAS ═══════════ */
+function getMonday(d){ const x=new Date(d); const w=x.getDay(); x.setDate(x.getDate()-w+(w===0?-6:1)); x.setHours(0,0,0,0); return x; }
+function toISO(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4); return z.toISOString().split('T')[0]; }
+function fmtDate(d){ const m=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']; return `${d.getDate()} de ${m[d.getMonth()]}`; }
+function dateOfDay(ws,day){ const d=new Date(ws); d.setDate(d.getDate()+ALL_DAYS.indexOf(day)); d.setHours(0,0,0,0); return d; }
+function todayDayName(){ const t=new Date().getDay(); return ALL_DAYS[t===0?6:t-1]; }
+function hhmm(ts){ const d=new Date(ts); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function toMin(h){ if(!h||!/^\d{1,2}:\d{2}$/.test(h)) return null; const [a,b]=h.split(':').map(Number); return a*60+b; }
+const TOLERANCIA = 30;
+function estado(due, ts){
+  if(!ts) return 'pendiente';
+  const a=toMin(due); if(a===null) return 'hecha';
+  const r=toMin(hhmm(ts)); if(r===null) return 'hecha';
+  return r<=a+TOLERANCIA ? 'a_tiempo' : 'atrasada';
 }
-function toISO(d) {
-  const z = new Date(d.getTime() - d.getTimezoneOffset()*60000);
-  return z.toISOString().split('T')[0];
-}
-function fmtDate(date) {
-  const m = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  return `${date.getDate()} de ${m[date.getMonth()]}`;
-}
-function dateOfDay(weekStart, dayName) {
-  const d = new Date(weekStart); d.setDate(d.getDate() + ALL_DAYS.indexOf(dayName)); d.setHours(0,0,0,0); return d;
-}
-function todayDayName() { const t = new Date().getDay(); return ALL_DAYS[t === 0 ? 6 : t - 1]; }
-function hhmm(ts) { const d = new Date(ts); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
-function toMin(h) { if (!h || !/^\d{1,2}:\d{2}$/.test(h)) return null; const [a,b] = h.split(':').map(Number); return a*60+b; }
-
-/* Puntualidad */
-const TOLERANCIA_MIN = 30;
-function estadoTarea(horaAsignada, ts) {
-  if (!ts) return 'pendiente';
-  const asign = toMin(horaAsignada);
-  if (asign === null) return 'hecha';
-  const real = toMin(hhmm(ts));
-  if (real === null) return 'hecha';
-  return real <= asign + TOLERANCIA_MIN ? 'a_tiempo' : 'atrasada';
-}
-const EST_UI = {
-  a_tiempo:  { txt:'A tiempo',  cls:'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  atrasada:  { txt:'Atrasada',  cls:'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-  hecha:     { txt:'Hecha',     cls:'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  pendiente: { txt:'Pendiente', cls:'bg-white/5 text-slate-500 border-white/10' },
+const EST = {
+  a_tiempo:{t:'A tiempo',c:'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'},
+  atrasada:{t:'Atrasada',c:'bg-amber-500/15 text-amber-600 border-amber-500/30'},
+  hecha:{t:'Hecha',c:'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'},
+  pendiente:{t:'Pendiente',c:'border-[color:var(--line)] dim'},
 };
 
-/* ═══════════════ STORAGE (namespaced por local) ═══════════════ */
-function lsGet(loc, key, fb) { try { const v = localStorage.getItem(loc + '_' + key); return v ? JSON.parse(v) : fb; } catch { return fb; } }
-function lsSet(loc, key, val) { try { localStorage.setItem(loc + '_' + key, JSON.stringify(val)); } catch {} }
-
-/* ═══════════════ FIREBASE ═══════════════ */
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBXn6K6_eDhgflbG_ek5s4Qf5N4KxOnXyo",
-  authDomain: "blackchicken-ops.firebaseapp.com",
-  databaseURL: "https://blackchicken-ops-default-rtdb.firebaseio.com",
-  projectId: "blackchicken-ops",
-  storageBucket: "blackchicken-ops.firebasestorage.app",
-  messagingSenderId: "613211123193",
-  appId: "1:613211123193:web:5f3b273ddb6da3c65aa128"
+/* ═══════════ ÍCONOS ═══════════ */
+const Icon = ({ name, size=16 }) => {
+  const P={width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round"};
+  const I={
+    calendar:<svg {...P}><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+    clock:<svg {...P}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    check:<svg {...P}><path d="M20 6 9 17l-5-5"/></svg>,
+    x:<svg {...P}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+    plus:<svg {...P}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+    trash:<svg {...P}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+    dice:<svg {...P}><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>,
+    copy:<svg {...P}><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
+    grid:<svg {...P}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>,
+    chart:<svg {...P}><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
+    list:<svg {...P}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
+    alert:<svg {...P}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+    download:<svg {...P}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+    back:<svg {...P}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
+    home:<svg {...P}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    logout:<svg {...P}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+    sun:<svg {...P}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg>,
+    moon:<svg {...P}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
+    camera:<svg {...P}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+    refresh:<svg {...P}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+  };
+  return I[name] || I.check;
 };
-let _db = null;
-function getDB() {
-  if (_db) return _db;
-  try {
-    if (!window.firebase) return null;
-    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    _db = firebase.database(); return _db;
-  } catch { return null; }
-}
-function fbRef(path) { const db = getDB(); return db ? db.ref(path) : null; }
-function fbSave(path, val) { const r = fbRef(path); if (r) { try { r.set(val === undefined ? null : val).catch(()=>{}); } catch {} } }
-function fbOn(path, cb) {
-  const r = fbRef(path); if (!r) { cb(null); return () => {}; }
-  const h = r.on('value', s => cb(s.val()), () => cb(null));
-  return () => { try { r.off('value', h); } catch {} };
-}
 
-/* ═══════════════ ROTACIÓN AUTOMÁTICA ═══════════════ */
-function autoAssign(catalog, staff, days) {
+/* ═══════════ REPARTO ALEATORIO / EQUITATIVO ═══════════ */
+function repartir(catalog, people, day, aleatorio, semilla) {
   const out = {};
-  days.forEach((day, di) => {
-    out[day] = {};
-    const people = staff.filter(s => !s.inactivo);
-    if (!people.length) return;
-    const breaks = catalog.filter(t => t.isBreak && (!t.days || t.days.includes(day)));
-    const tasks  = catalog.filter(t => !t.isBreak && (!t.days || t.days.includes(day)));
-    people.forEach(p => { out[day][p.id] = breaks.map(b => b.id); });
-    tasks.forEach((t, ti) => { out[day][people[(ti + di) % people.length].id].push(t.id); });
-  });
+  people.forEach(p => { out[p.id] = []; });
+  if (!people.length) return out;
+  const aplica = (t) => !t.days || t.days.includes(day);
+  catalog.filter(t => t.is_break && aplica(t)).forEach(t => people.forEach(p => out[p.id].push(t.id)));
+
+  let tareas = catalog.filter(t => !t.is_break && aplica(t));
+  if (aleatorio) {
+    /* barajado determinista por semilla — mismo click, mismo resultado visible */
+    let s = semilla >>> 0;
+    const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    tareas = [...tareas];
+    for (let i = tareas.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [tareas[i], tareas[j]] = [tareas[j], tareas[i]]; }
+  }
+  /* reparto parejo: siempre la misma cantidad ±1 por persona */
+  const desfase = aleatorio ? (semilla % people.length) : ALL_DAYS.indexOf(day) % people.length;
+  tareas.forEach((t, i) => out[people[(i + desfase) % people.length].id].push(t.id));
   return out;
 }
-
-function sortByTime(catalog, ids) {
-  const byId = Object.fromEntries(catalog.map(t => [t.id, t]));
-  return [...(ids || [])].filter(id => byId[id]).sort((a, b) => {
-    const ma = toMin(byId[a].time), mb = toMin(byId[b].time);
-    if (ma === null && mb === null) return 0;
-    if (ma === null) return 1;
-    if (mb === null) return -1;
-    return ma - mb;
+const ordenar = (catalog, ids) => {
+  const by = Object.fromEntries(catalog.map(t => [t.id, t]));
+  return [...(ids||[])].filter(i => by[i]).sort((a,b) => {
+    const x = toMin(by[a].time), y = toMin(by[b].time);
+    if (x===null && y===null) return 0; if (x===null) return 1; if (y===null) return -1;
+    return x - y;
   });
-}
-
-/* ═══════════════ SELECTOR DE LOCAL ═══════════════ */
-const LocalPicker = ({ onPick }) => (
-  <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-6 py-10">
-    <img src="logo.png" alt="Black Chicken" className="w-28 h-28 object-contain mb-5 opacity-95"/>
-    <h1 className="text-lg font-black uppercase tracking-tight text-white">Tareas de Salón</h1>
-    <p className="text-[10px] font-bold uppercase tracking-[0.35em] gold mb-10">Black Chicken</p>
-    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-4">¿En qué local estás hoy?</p>
-    <div className="w-full max-w-[320px] space-y-3">
-      {Object.values(LOCALES).map(L => (
-        <button key={L.id} onClick={() => onPick(L.id)}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-[#161616] border border-[#2a2a2a] hover:border-[#D4A843] active:bg-[#D4A843]/10 transition-all text-left">
-          <div className="w-12 h-12 rounded-xl bg-[#D4A843] text-black flex items-center justify-center text-xl font-black shrink-0">
-            {L.num}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-black uppercase tracking-tight text-white">{L.name}</p>
-            <p className="text-[10px] font-bold text-slate-500 truncate">{L.dir}</p>
-            <p className="text-[9px] font-bold gold mt-0.5">{L.horario}</p>
-          </div>
-        </button>
-      ))}
-    </div>
-    <p className="text-[9px] text-slate-700 mt-10 uppercase tracking-widest text-center px-6">
-      Si rotas entre locales, elige donde trabajas hoy · tu PIN es el mismo
-    </p>
-  </div>
-);
-
-/* ═══════════════ LOGIN POR PIN ═══════════════ */
-const Login = ({ loc, staff, masterPin, onLogin, onBack }) => {
-  const [pin, setPin] = useState('');
-  const [err, setErr] = useState('');
-  const L = LOCALES[loc];
-
-  const tryLogin = (p) => {
-    if (p === String(masterPin)) { onLogin('__master__'); return; }
-    const person = staff.find(s => String(s.pin) === p);
-    if (person) { onLogin(person.id); return; }
-    setErr('PIN incorrecto'); setPin('');
-    if (navigator.vibrate) navigator.vibrate(180);
-  };
-  const press = (d) => {
-    if (pin.length >= 4) return;
-    const np = pin + d; setPin(np); setErr('');
-    if (np.length === 4) setTimeout(() => tryLogin(np), 120);
-  };
-
-  return (
-    <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-6 py-8">
-      <button onClick={onBack} className="absolute top-5 left-5 flex items-center gap-1.5 text-slate-600 hover:text-white text-[10px] font-black uppercase tracking-wider">
-        <Icon name="back" size={14}/> Cambiar local
-      </button>
-      <img src="logo.png" alt="Black Chicken" className="w-20 h-20 object-contain mb-3 opacity-90"/>
-      <h1 className="text-lg font-black uppercase tracking-tight text-white">{L.name}</h1>
-      <p className="text-[10px] text-slate-600 mb-7">{L.dir}</p>
-
-      <div className="flex gap-3 mb-2">
-        {[0,1,2,3].map(i => (
-          <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all ${pin.length > i ? 'bg-[#D4A843] border-[#D4A843]' : 'border-white/20'}`}/>
-        ))}
-      </div>
-      <p className={`text-[11px] font-bold h-5 mb-4 ${err ? 'text-rose-400' : 'text-slate-600'}`}>{err || 'Ingresa tu PIN'}</p>
-
-      <div className="grid grid-cols-3 gap-3 w-full max-w-[250px]">
-        {['1','2','3','4','5','6','7','8','9'].map(d => (
-          <button key={d} onClick={() => press(d)}
-            className="aspect-square rounded-2xl bg-[#1a1a1a] border border-[#2a2a2a] text-white text-2xl font-bold active:bg-[#D4A843] active:text-black transition-colors">{d}</button>
-        ))}
-        <button onClick={() => { setPin(''); setErr(''); }}
-          className="aspect-square rounded-2xl border border-[#2a2a2a] text-slate-500 text-[10px] font-black uppercase active:bg-white/5">Borrar</button>
-        <button onClick={() => press('0')}
-          className="aspect-square rounded-2xl bg-[#1a1a1a] border border-[#2a2a2a] text-white text-2xl font-bold active:bg-[#D4A843] active:text-black transition-colors">0</button>
-        <button onClick={() => setPin(p => p.slice(0,-1))}
-          className="aspect-square rounded-2xl border border-[#2a2a2a] text-slate-500 active:bg-white/5 flex items-center justify-center"><Icon name="back" size={18}/></button>
-      </div>
-      <p className="text-[9px] text-slate-700 mt-7 uppercase tracking-widest text-center">Tu PIN es personal · identifica quién hizo cada tarea</p>
-    </div>
-  );
 };
 
-/* ═══════════════ FILA DE TAREA ═══════════════ */
-const TaskRow = ({ task, ts, canCheck, onToggle, locked }) => {
-  const est = estadoTarea(task.time, ts);
-  const ui = EST_UI[est];
-  const done = !!ts;
-  return (
-    <div className={`flex gap-3 p-3 rounded-xl border transition-all ${
-      task.isBreak ? 'bg-orange-500/10 border-orange-500/25'
-      : done ? 'bg-emerald-500/[0.07] border-emerald-500/25'
-      : task.priority === 'alta' ? 'bg-[#1a1a1a] border-[#3a3a3a]'
-      : 'bg-[#151515] border-[#242424]'
-    }`}>
-      <div className="flex flex-col items-center min-w-[44px] shrink-0">
-        <span className={`text-[10px] font-black ${task.isBreak ? 'text-orange-400' : 'gold'}`}>{task.time}</span>
-        <div className={`p-1.5 rounded-lg mt-1 ${task.isBreak ? 'bg-orange-500/20 text-orange-300' : 'bg-white/5 text-slate-300'}`}>
-          <Icon name={task.icon} size={16}/>
-        </div>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-bold leading-tight ${done ? 'text-slate-500 line-through' : 'text-white'}`}>{task.name}</p>
-        <div className="flex gap-1.5 items-center flex-wrap mt-1">
-          {!done && task.priority === 'alta' && !task.isBreak && (
-            <span className="text-[8px] font-black bg-[#D4A843] text-black px-1.5 py-0.5 rounded uppercase tracking-tight">Prioritaria</span>
-          )}
-          {task.days && (
-            <span className="text-[8px] font-black bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded uppercase tracking-tight">
-              Solo {task.days.map(d => DAY_LABELS[ALL_DAYS.indexOf(d)]).join('/')}
-            </span>
-          )}
-          {done && (
-            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-tight ${ui.cls}`}>{ui.txt} · {hhmm(ts)}</span>
-          )}
-        </div>
-      </div>
-      <button disabled={!canCheck || locked} onClick={onToggle} className={`flex items-center shrink-0 ${(!canCheck || locked) ? 'opacity-40' : ''}`}>
-        <div className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all ${
-          done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/20'
-        }`}>{done && <Icon name="check" size={16}/>}</div>
-      </button>
-    </div>
-  );
-};
-
-/* ═══════════════ CHECKLIST DEL TURNO ═══════════════ */
-const TurnoCard = ({ person, catalog, taskIds, plog, psub, canCheck, onToggle, onSubmit, onUnsubmit, isAdmin }) => {
-  const [confirming, setConfirming] = useState(false);
-  const byId = Object.fromEntries(catalog.map(t => [t.id, t]));
-  const ids = sortByTime(catalog, taskIds);
-  const total = ids.length;
-  const done = ids.filter(id => plog[id]).length;
-  const prog = total ? Math.round(done / total * 100) : 0;
-  const c = cc(person.color);
-  const locked = !!psub && !isAdmin;
-
-  return (
-    <div className={`rounded-2xl border overflow-hidden ${c.bd} bg-[#131313] fade-in`}>
-      <div className={`p-4 ${c.bg} border-b border-white/5`}>
-        <div className="flex justify-between items-start gap-2">
-          <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">{person.role}</p>
-            <h2 className={`text-lg font-black uppercase tracking-tight ${c.txt} truncate`}>{person.name}</h2>
-            <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mt-0.5"><Icon name="clock" size={11}/> {person.schedule}</p>
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-2xl font-black text-white leading-none">{done}<span className="text-slate-600 text-base">/{total}</span></p>
-            <p className="text-[9px] font-black uppercase text-slate-500 mt-0.5">tareas</p>
-          </div>
-        </div>
-        <div className="w-full h-1.5 bg-white/5 rounded-full mt-3">
-          <div className={`h-full rounded-full transition-all ${prog === 100 ? 'bg-emerald-500' : 'bg-[#D4A843]'}`} style={{width:`${prog}%`}}/>
-        </div>
-      </div>
-
-      <div className="p-2 space-y-1.5">
-        {ids.length === 0 && <p className="text-center text-[11px] text-slate-600 py-6 font-medium">Sin tareas asignadas este día.</p>}
-        {ids.map(id => (
-          <TaskRow key={id} task={byId[id]} ts={plog[id]} canCheck={canCheck} locked={locked} onToggle={() => onToggle(person.id, id)}/>
-        ))}
-      </div>
-
-      {ids.length > 0 && (
-        <div className="p-3 border-t border-white/5">
-          {psub ? (
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-emerald-400">
-                <Icon name="check" size={14}/>
-                <span className="text-[10px] font-black uppercase tracking-wider">Turno enviado {hhmm(psub.ts)} · {psub.done}/{psub.total}</span>
-              </div>
-              {isAdmin && <button onClick={() => onUnsubmit(person.id)} className="text-[9px] font-black uppercase text-slate-500 hover:text-rose-400">Reabrir</button>}
-            </div>
-          ) : (
-            <>
-              {confirming && done < total && (
-                <p className="text-[10px] font-bold text-amber-400 mb-2 text-center">
-                  Te quedan {total - done} tareas sin marcar. Toca de nuevo para enviar igual.
-                </p>
-              )}
-              <button disabled={!canCheck}
-                onClick={() => {
-                  if (done < total && !confirming) { setConfirming(true); return; }
-                  onSubmit(person.id, done, total); setConfirming(false);
-                }}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${
-                  !canCheck ? 'bg-white/5 text-slate-600'
-                  : confirming && done < total ? 'bg-amber-500 text-black'
-                  : 'bg-[#D4A843] text-black active:opacity-80'
-                }`}>
-                <Icon name="send" size={14}/> {confirming && done < total ? 'Confirmar envío' : 'Enviar turno'}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ═══════════════ SHEET GENÉRICO ═══════════════ */
+/* ═══════════ UI BASE ═══════════ */
 const Sheet = ({ title, onClose, children }) => (
   <div className="fixed inset-0 z-[100] bg-black/70 flex items-end sm:items-center justify-center" onClick={onClose}>
-    <div className="bg-[#141414] border border-[#2a2a2a] rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto no-scrollbar fade-in"
-      onClick={e => e.stopPropagation()}>
-      <div className="sticky top-0 bg-[#141414] border-b border-[#2a2a2a] p-4 flex justify-between items-center z-10">
-        <h2 className="text-sm font-black uppercase tracking-tight text-white">{title}</h2>
-        <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:text-white hover:bg-white/5"><Icon name="x" size={18}/></button>
+    <div className="card border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto no-scrollbar fade-in" onClick={e=>e.stopPropagation()}>
+      <div className="sticky top-0 card border-b p-4 flex justify-between items-center z-10">
+        <h2 className="text-sm font-black uppercase tracking-tight">{title}</h2>
+        <button onClick={onClose} className="p-2 rounded-full dim"><Icon name="x" size={18}/></button>
       </div>
       <div className="p-4">{children}</div>
     </div>
   </div>
 );
+const Toast = ({ msg, tipo }) => msg ? (
+  <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl text-xs font-bold shadow-xl fade-in ${
+    tipo==='error' ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>{msg}</div>
+) : null;
 
-const Fld = ({ label, children }) => (
-  <div className="mb-3">
-    <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-1.5 block">{label}</label>
-    {children}
+/* ═══════════ SELECTOR DE LOCAL ═══════════ */
+const LocalPicker = ({ onPick, theme, toggleTheme }) => (
+  <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 relative">
+    <button onClick={toggleTheme} className="absolute top-5 right-5 p-2 rounded-lg dim"><Icon name={theme==='dark'?'sun':'moon'} size={18}/></button>
+    <img src="logo.png" alt="Black Chicken" className="w-28 h-28 object-contain mb-5"/>
+    <h1 className="text-lg font-black uppercase tracking-tight">Tareas de Salón</h1>
+    <p className="text-[10px] font-bold uppercase tracking-[0.35em] gold mb-10">Planificación</p>
+    <p className="text-[11px] font-bold uppercase tracking-wider dim mb-4">¿Qué local vas a planificar?</p>
+    <div className="w-full max-w-[320px] space-y-3">
+      {Object.values(LOCALES).map(L => (
+        <button key={L.id} onClick={()=>onPick(L.id)}
+          className="w-full flex items-center gap-4 p-4 rounded-2xl card border hover:border-[color:var(--gold)] transition-all text-left">
+          <div className="w-12 h-12 rounded-xl bgold text-black flex items-center justify-center text-xl font-black shrink-0">{L.num}</div>
+          <div className="min-w-0">
+            <p className="text-sm font-black uppercase tracking-tight">{L.name}</p>
+            <p className="text-[10px] font-bold dim truncate">{L.dir}</p>
+            <p className="text-[9px] font-bold gold mt-0.5">{L.horario}</p>
+          </div>
+        </button>
+      ))}
+    </div>
   </div>
 );
-const inputCls = "w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-sm font-medium text-white outline-none focus:border-[#D4A843]";
 
-/* ═══════════════ ASIGNACIÓN SEMANAL ═══════════════ */
-const SemanaView = ({ catalog, staff, days, assign, setAssign, weekStart, onAuto }) => {
-  const [day, setDay] = useState(() => days.includes(todayDayName()) ? todayDayName() : days[0]);
-  const [picker, setPicker] = useState(null);   /* staffId */
-  const [copyTo, setCopyTo] = useState(false);
-  const byId = Object.fromEntries(catalog.map(t => [t.id, t]));
-  const dayAssign = (assign && assign[day]) || {};
+/* ═══════════ LOGIN ═══════════ */
+const Login = ({ loc, people, onLogin, onBack, theme, toggleTheme }) => {
+  const [pin,setPin]=useState(''); const [err,setErr]=useState(''); const [busy,setBusy]=useState(false);
+  const L=LOCALES[loc];
+  const intentar = async (p) => {
+    setBusy(true);
+    if (p === MASTER_PIN) { setBusy(false); onLogin({ id:0, name:'Jonathan', role:'Dueño', pin:p, puedeAsignar:true }); return; }
+    for (const per of people) {
+      const r = await sbRpc('verify_pin', { p_person: per.id, p_pin: p });
+      if (r.data === true) { setBusy(false); onLogin({ ...per, pin:p }); return; }
+    }
+    setBusy(false); setErr('PIN incorrecto'); setPin('');
+    if (navigator.vibrate) navigator.vibrate(180);
+  };
+  const press = (d) => { if(pin.length>=4||busy) return; const np=pin+d; setPin(np); setErr('');
+    if (np.length===4) setTimeout(()=>intentar(np),120); };
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-8">
+      <button onClick={onBack} className="absolute top-5 left-5 flex items-center gap-1.5 dim text-[10px] font-black uppercase tracking-wider"><Icon name="back" size={14}/> Cambiar local</button>
+      <button onClick={toggleTheme} className="absolute top-5 right-5 p-2 rounded-lg dim"><Icon name={theme==='dark'?'sun':'moon'} size={18}/></button>
+      <img src="logo.png" alt="" className="w-20 h-20 object-contain mb-3"/>
+      <h1 className="text-lg font-black uppercase tracking-tight">{L.name}</h1>
+      <p className="text-[10px] dim mb-7">{L.dir}</p>
+      <div className="flex gap-3 mb-2">
+        {[0,1,2,3].map(i=><div key={i} className={`w-4 h-4 rounded-full border-2 ${pin.length>i?'bgold border-[color:var(--gold)]':'border-[color:var(--line)]'}`}/>)}
+      </div>
+      <p className={`text-[11px] font-bold h-5 mb-4 ${err?'text-rose-500':'dim'}`}>{busy?'Verificando…':(err||'Ingresa tu PIN')}</p>
+      <div className="grid grid-cols-3 gap-3 w-full max-w-[250px]">
+        {['1','2','3','4','5','6','7','8','9'].map(d=>(
+          <button key={d} onClick={()=>press(d)} className="aspect-square rounded-2xl card2 border text-2xl font-bold active:bgold active:text-black">{d}</button>
+        ))}
+        <button onClick={()=>{setPin('');setErr('')}} className="aspect-square rounded-2xl border dim text-[10px] font-black uppercase">Borrar</button>
+        <button onClick={()=>press('0')} className="aspect-square rounded-2xl card2 border text-2xl font-bold active:bgold active:text-black">0</button>
+        <button onClick={()=>setPin(p=>p.slice(0,-1))} className="aspect-square rounded-2xl border dim flex items-center justify-center"><Icon name="back" size={18}/></button>
+      </div>
+      <p className="text-[9px] dim mt-7 uppercase tracking-widest text-center">Mismo PIN que usas en la app de checklists</p>
+    </div>
+  );
+};
 
-  const setFor = (staffId, ids) => {
-    const na = { ...(assign || {}) };
-    na[day] = { ...(na[day] || {}) , [staffId]: ids };
-    setAssign(na);
-  };
-  const removeTask = (staffId, taskId) => setFor(staffId, (dayAssign[staffId] || []).filter(x => x !== taskId));
-  const addTask = (staffId, taskId) => {
-    const cur = dayAssign[staffId] || [];
-    if (cur.includes(taskId)) return;
-    setFor(staffId, [...cur, taskId]);
-  };
-  const clearDay = () => { const na = { ...(assign || {}) }; na[day] = {}; setAssign(na); };
-  const copyDayTo = (targets) => {
-    const na = { ...(assign || {}) };
-    targets.forEach(t => { na[t] = JSON.parse(JSON.stringify(dayAssign)); });
-    setAssign(na); setCopyTo(false);
-  };
+/* ═══════════ ASIGNACIÓN SEMANAL ═══════════ */
+const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, puedeAsignar, toast }) => {
+  const [day,setDay]=useState(()=>days.includes(todayDayName())?todayDayName():days[0]);
+  const [picker,setPicker]=useState(null);
+  const [copiar,setCopiar]=useState(false);
+  const by=Object.fromEntries(catalog.map(t=>[t.id,t]));
+  const dia=asign[day]||{};
 
-  const availables = catalog.filter(t => !t.days || t.days.includes(day));
-  const asignadasHoy = new Set(Object.values(dayAssign).flat());
+  useEffect(()=>{ if(days.length&&!days.includes(day)) setDay(days[0]); },[days]);
+
+  const setDia = (nuevo) => guardar(day, nuevo);
+  const quitar = (pid,tid) => setDia({...dia,[pid]:(dia[pid]||[]).filter(x=>x!==tid)});
+  const poner  = (pid,tid) => { const c=dia[pid]||[]; if(c.includes(tid))return; setDia({...dia,[pid]:[...c,tid]}); };
+  const aleatorio = () => { if(!people.length){toast('No hay personal de salón en este local','error');return;} setDia(repartir(catalog,people,day,true,Date.now()%100000)); };
+  const parejo    = () => setDia(repartir(catalog,people,day,false,0));
+  const limpiar   = () => setDia({});
+  const copiarA   = (dst) => { const n={}; dst.forEach(d=>{n[d]=JSON.parse(JSON.stringify(dia));}); guardar(null,n); setCopiar(false); };
+
+  const disponibles = catalog.filter(t=>!t.days||t.days.includes(day));
+  const yaAsignadas = new Set(Object.values(dia).flat());
+  const sinAsignar  = disponibles.filter(t=>!yaAsignadas.has(t.id));
 
   return (
     <div className="space-y-3 fade-in">
-      {/* Selector de día */}
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-        {days.map(d => {
-          const n = Object.values((assign && assign[d]) || {}).flat().length;
+        {days.map(d=>{
+          const n=Object.values(asign[d]||{}).flat().length;
           return (
-            <button key={d} onClick={() => setDay(d)}
-              className={`flex flex-col items-center px-3 py-1.5 rounded-xl min-w-[54px] transition-all ${
-                day === d ? 'bg-[#D4A843] text-black' : 'bg-[#1a1a1a] text-slate-400 border border-[#2a2a2a]'
-              }`}>
+            <button key={d} onClick={()=>setDay(d)} className={`flex flex-col items-center px-3 py-1.5 rounded-xl min-w-[54px] ${day===d?'bgold text-black':'card2 border dim'}`}>
               <span className="text-[10px] font-black uppercase">{DAY_LABELS[ALL_DAYS.indexOf(d)]}</span>
               <span className="text-[9px] font-bold opacity-70">{n}</span>
             </button>
@@ -501,93 +254,84 @@ const SemanaView = ({ catalog, staff, days, assign, setAssign, weekStart, onAuto
         })}
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        <button onClick={onAuto} className="flex items-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-slate-300 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider hover:border-[#D4A843]">
-          <Icon name="refresh" size={12}/> Auto-rotar semana
-        </button>
-        <button onClick={() => setCopyTo(true)} className="flex items-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-slate-300 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider hover:border-[#D4A843]">
-          <Icon name="copy" size={12}/> Copiar día
-        </button>
-        <button onClick={clearDay} className="flex items-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-slate-500 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider hover:border-rose-500 hover:text-rose-400">
-          <Icon name="trash" size={12}/> Limpiar
-        </button>
-      </div>
+      {puedeAsignar && (
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={aleatorio} className="flex items-center gap-1.5 bgold text-black px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="dice" size={13}/> Repartir al azar</button>
+          <button onClick={parejo} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="refresh" size={12}/> Reparto parejo</button>
+          <button onClick={()=>setCopiar(true)} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="copy" size={12}/> Copiar día</button>
+          <button onClick={limpiar} className="flex items-center gap-1.5 card2 border dim px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="trash" size={12}/> Limpiar</button>
+        </div>
+      )}
 
-      {/* Tareas del día sin asignar */}
-      {availables.filter(t => !asignadasHoy.has(t.id)).length > 0 && (
-        <div className="bg-amber-500/8 border border-amber-500/25 rounded-xl p-3">
-          <p className="text-[9px] font-black uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
-            <Icon name="alert" size={12}/> Sin asignar este día
-          </p>
+      {sinAsignar.length>0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+          <p className="text-[9px] font-black uppercase tracking-wider text-amber-600 mb-2 flex items-center gap-1.5"><Icon name="alert" size={12}/> Sin asignar este día · {sinAsignar.length}</p>
           <div className="flex flex-wrap gap-1.5">
-            {availables.filter(t => !asignadasHoy.has(t.id)).map(t => (
-              <span key={t.id} className="text-[10px] font-bold bg-white/5 text-slate-300 px-2 py-1 rounded-lg">{t.name}</span>
-            ))}
+            {sinAsignar.map(t=><span key={t.id} className="text-[10px] font-bold card2 border px-2 py-1 rounded-lg">{t.name}</span>)}
           </div>
         </div>
       )}
 
-      {/* Tarjetas por persona */}
-      {staff.map(p => {
-        const c = cc(p.color);
-        const ids = sortByTime(catalog, dayAssign[p.id]);
+      {people.length===0 && (
+        <div className="card border rounded-xl p-4 text-center">
+          <p className="text-[11px] dim font-medium">No hay personal de salón cargado para este local.</p>
+        </div>
+      )}
+
+      {people.map((p,i)=>{
+        const ids=ordenar(catalog,dia[p.id]);
+        const col=colorOf(i);
         return (
-          <div key={p.id} className={`rounded-2xl border ${c.bd} bg-[#141414] overflow-hidden`}>
-            <div className={`px-4 py-2.5 ${c.bg} border-b border-white/5 flex justify-between items-center`}>
+          <div key={p.id} className="rounded-2xl card border overflow-hidden" style={{borderColor:col+'55'}}>
+            <div className="px-4 py-2.5 border-b flex justify-between items-center" style={{background:col+'14',borderColor:'var(--line)'}}>
               <div className="flex items-center gap-2 min-w-0">
-                <div className={`w-2 h-2 rounded-full ${c.dot}`}/>
-                <span className={`text-sm font-black uppercase tracking-tight ${c.txt} truncate`}>{p.name}</span>
-                <span className="text-[9px] font-bold text-slate-600 shrink-0">{p.schedule}</span>
+                <div className="w-2 h-2 rounded-full shrink-0" style={{background:col}}/>
+                <span className="text-sm font-black uppercase tracking-tight truncate" style={{color:col}}>{p.name}</span>
+                {p.puedeAsignar && <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bgold text-black shrink-0">Jefe</span>}
+                {!p.pinOk && <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-500 shrink-0">Sin PIN</span>}
               </div>
-              <span className="text-[10px] font-black text-slate-500 shrink-0">{ids.length}</span>
+              <span className="text-[10px] font-black dim shrink-0">{ids.length}</span>
             </div>
             <div className="p-2.5 flex flex-wrap gap-1.5">
-              {ids.map(id => {
-                const t = byId[id];
+              {ids.map(id=>{
+                const t=by[id];
                 return (
-                  <button key={id} onClick={() => removeTask(p.id, id)}
-                    className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1.5 rounded-lg border transition-all ${
-                      t.isBreak ? 'bg-orange-500/10 border-orange-500/25 text-orange-300'
-                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-slate-300 hover:border-rose-500/50 hover:text-rose-400'
-                    }`}>
+                  <button key={id} disabled={!puedeAsignar} onClick={()=>quitar(p.id,id)}
+                    className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1.5 rounded-lg border ${t.is_break?'bg-orange-500/10 border-orange-500/30 text-orange-500':'card2'} ${puedeAsignar?'hover:border-rose-500/50':''}`}>
                     <span className="gold font-black">{t.time}</span>
                     <span className="truncate max-w-[150px]">{t.name}</span>
-                    <Icon name="x" size={10}/>
+                    {puedeAsignar && <Icon name="x" size={10}/>}
                   </button>
                 );
               })}
-              <button onClick={() => setPicker(p.id)}
-                className="flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1.5 rounded-lg border border-dashed border-[#3a3a3a] text-slate-500 hover:border-[#D4A843] hover:text-[#D4A843]">
-                <Icon name="plus" size={11}/> Agregar
-              </button>
+              {puedeAsignar && (
+                <button onClick={()=>setPicker(p.id)} className="flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1.5 rounded-lg border border-dashed dim">
+                  <Icon name="plus" size={11}/> Agregar
+                </button>
+              )}
+              {!ids.length && !puedeAsignar && <span className="text-[10px] dim px-1 py-1.5">Sin tareas</span>}
             </div>
           </div>
         );
       })}
 
       {picker && (
-        <Sheet title={`Agregar tarea · ${staff.find(s => s.id === picker)?.name || ''}`} onClose={() => setPicker(null)}>
-          <p className="text-[10px] text-slate-500 mb-3 font-medium">
-            {DAY_FULL[ALL_DAYS.indexOf(day)]} · toca una tarea para asignarla
-          </p>
+        <Sheet title={`Agregar · ${people.find(p=>p.id===picker)?.name||''}`} onClose={()=>setPicker(null)}>
+          <p className="text-[10px] dim mb-3 font-medium">{DAY_FULL[ALL_DAYS.indexOf(day)]}</p>
           <div className="space-y-1.5">
-            {availables.map(t => {
-              const yaSuya = (dayAssign[picker] || []).includes(t.id);
-              const deOtro = !yaSuya && Object.entries(dayAssign).find(([sid, arr]) => sid !== picker && (arr || []).includes(t.id));
+            {disponibles.map(t=>{
+              const suya=(dia[picker]||[]).includes(t.id);
+              const otro=!suya&&Object.entries(dia).find(([sid,arr])=>sid!=String(picker)&&(arr||[]).includes(t.id));
               return (
-                <button key={t.id} disabled={yaSuya} onClick={() => { addTask(picker, t.id); setPicker(null); }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-                    yaSuya ? 'bg-emerald-500/10 border-emerald-500/25 opacity-60'
-                    : 'bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#D4A843]'
-                  }`}>
-                  <div className="p-1.5 rounded-lg bg-white/5 text-slate-300"><Icon name={t.icon} size={16}/></div>
+                <button key={t.id} disabled={suya} onClick={()=>{poner(picker,t.id);setPicker(null);}}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left ${suya?'bg-emerald-500/10 border-emerald-500/30 opacity-60':'card2 hover:border-[color:var(--gold)]'}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{t.name}</p>
-                    <p className="text-[9px] font-bold text-slate-500">
-                      {t.time}{deOtro ? ` · ya asignada a ${staff.find(s => s.id === deOtro[0])?.name || '?'}` : ''}
+                    <p className="text-sm font-bold truncate">{t.name}</p>
+                    <p className="text-[9px] font-bold dim">
+                      {t.time}{t.photo_required?' · con foto':''}{otro?` · ya es de ${people.find(p=>String(p.id)===otro[0])?.name||'?'}`:''}
                     </p>
                   </div>
-                  {yaSuya && <Icon name="check" size={16}/>}
+                  {suya&&<Icon name="check" size={16}/>}
                 </button>
               );
             })}
@@ -595,551 +339,279 @@ const SemanaView = ({ catalog, staff, days, assign, setAssign, weekStart, onAuto
         </Sheet>
       )}
 
-      {copyTo && (
-        <Sheet title={`Copiar ${DAY_FULL[ALL_DAYS.indexOf(day)]} a…`} onClose={() => setCopyTo(false)}>
+      {copiar && (
+        <Sheet title={`Copiar ${DAY_FULL[ALL_DAYS.indexOf(day)]} a…`} onClose={()=>setCopiar(false)}>
           <div className="space-y-1.5">
-            {days.filter(d => d !== day).map(d => (
-              <button key={d} onClick={() => copyDayTo([d])}
-                className="w-full p-3 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-left text-sm font-bold text-white hover:border-[#D4A843]">
-                {DAY_FULL[ALL_DAYS.indexOf(d)]}
-              </button>
+            {days.filter(d=>d!==day).map(d=>(
+              <button key={d} onClick={()=>copiarA([d])} className="w-full p-3 rounded-xl card2 border text-left text-sm font-bold">{DAY_FULL[ALL_DAYS.indexOf(d)]}</button>
             ))}
-            <button onClick={() => copyDayTo(days.filter(d => d !== day))}
-              className="w-full p-3 rounded-xl bg-[#D4A843] text-black text-sm font-black uppercase tracking-wider">
-              Todos los demás días
-            </button>
+            <button onClick={()=>copiarA(days.filter(d=>d!==day))} className="w-full p-3 rounded-xl bgold text-black text-sm font-black uppercase tracking-wider">Todos los demás días</button>
           </div>
-          <p className="text-[10px] text-amber-400/80 mt-3 font-medium">
-            Ojo: las tareas de día fijo (ej. viernes) se copian igual. Revisa después.
-          </p>
+          <p className="text-[10px] text-amber-500 mt-3 font-medium">Las tareas de día fijo (viernes) se copian igual. Revísalo después.</p>
         </Sheet>
       )}
     </div>
   );
 };
 
-/* ═══════════════ CATÁLOGO DE TAREAS ═══════════════ */
-const TareasView = ({ catalog, setCatalog, days }) => {
-  const [edit, setEdit] = useState(null);   /* objeto tarea o 'nueva' */
+/* ═══════════ CONTROL ═══════════ */
+const ControlView = ({ loc, weekStart, days, reporte, toast }) => {
+  const [scope,setScope]=useState('dia');
+  const [day,setDay]=useState(()=>days.includes(todayDayName())?todayDayName():days[0]);
+  const [foto,setFoto]=useState(null);
+  useEffect(()=>{ if(days.length&&!days.includes(day)) setDay(days[0]); },[days]);
 
-  const save = (t) => {
-    if (!t.name.trim()) return;
-    const exists = catalog.some(x => x.id === t.id);
-    setCatalog(exists ? catalog.map(x => x.id === t.id ? t : x) : [...catalog, t]);
-    setEdit(null);
-  };
-  const del = (id) => { setCatalog(catalog.filter(x => x.id !== id)); setEdit(null); };
-  const nueva = () => setEdit({ id:'t' + Date.now(), name:'', icon:'checksq', time:'15:00', priority:'media', days:null, isBreak:false });
-
-  const ordenado = [...catalog].sort((a,b) => {
-    const ma = toMin(a.time), mb = toMin(b.time);
-    if (ma === null && mb === null) return 0;
-    if (ma === null) return 1; if (mb === null) return -1;
-    return ma - mb;
-  });
-
-  return (
-    <div className="space-y-3 fade-in">
-      <div className="flex justify-between items-center">
-        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{catalog.length} tareas en el catálogo</p>
-        <button onClick={nueva} className="flex items-center gap-1.5 bg-[#D4A843] text-black px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
-          <Icon name="plus" size={12}/> Nueva tarea
-        </button>
-      </div>
-
-      <div className="space-y-1.5">
-        {ordenado.map(t => (
-          <button key={t.id} onClick={() => setEdit({...t})}
-            className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#151515] border border-[#242424] hover:border-[#D4A843] text-left transition-all">
-            <div className={`p-2 rounded-lg shrink-0 ${t.isBreak ? 'bg-orange-500/20 text-orange-300' : 'bg-white/5 text-slate-300'}`}>
-              <Icon name={t.icon} size={16}/>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{t.name}</p>
-              <div className="flex gap-1.5 items-center flex-wrap mt-0.5">
-                <span className="text-[9px] font-black gold">{t.time}</span>
-                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
-                  t.priority === 'alta' ? 'bg-[#D4A843]/20 text-[#D4A843]'
-                  : t.priority === 'media' ? 'bg-white/5 text-slate-400' : 'bg-white/5 text-slate-600'
-                }`}>{t.priority}</span>
-                {t.days
-                  ? <span className="text-[8px] font-black bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded uppercase">Solo {t.days.map(d => DAY_LABELS[ALL_DAYS.indexOf(d)]).join('/')}</span>
-                  : <span className="text-[8px] font-black bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded uppercase">Todos los días</span>}
-                {t.isBreak && <span className="text-[8px] font-black bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded uppercase">Descanso</span>}
-              </div>
-            </div>
-            <Icon name="settings" size={14}/>
-          </button>
-        ))}
-      </div>
-
-      {edit && <TareaEditor t={edit} days={days} onSave={save} onDelete={del} onClose={() => setEdit(null)}
-        existe={catalog.some(x => x.id === edit.id)}/>}
-    </div>
-  );
-};
-
-const TareaEditor = ({ t, days, onSave, onDelete, onClose, existe }) => {
-  const [f, setF] = useState(t);
-  const up = (k, v) => setF(p => ({...p, [k]: v}));
-  const toggleDay = (d) => {
-    const cur = f.days || [];
-    const nd = cur.includes(d) ? cur.filter(x => x !== d) : [...cur, d].sort((a,b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b));
-    up('days', nd.length ? nd : null);
-  };
-  return (
-    <Sheet title={existe ? 'Editar tarea' : 'Nueva tarea'} onClose={onClose}>
-      <Fld label="Nombre">
-        <input className={inputCls} value={f.name} onChange={e => up('name', e.target.value)} placeholder="Ej: Limpiar ventanales"/>
-      </Fld>
-      <div className="grid grid-cols-2 gap-3">
-        <Fld label="Hora asignada">
-          <input className={inputCls} value={f.time} onChange={e => up('time', e.target.value)} placeholder="15:00 o cierre"/>
-        </Fld>
-        <Fld label="Prioridad">
-          <select className={inputCls} value={f.priority} onChange={e => up('priority', e.target.value)}>
-            <option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option>
-          </select>
-        </Fld>
-      </div>
-      <Fld label="Días en que aplica">
-        <div className="flex gap-1.5 flex-wrap">
-          <button onClick={() => up('days', null)}
-            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${!f.days ? 'bg-[#D4A843] text-black' : 'bg-[#1a1a1a] text-slate-500 border border-[#2a2a2a]'}`}>
-            Todos
-          </button>
-          {days.map(d => (
-            <button key={d} onClick={() => toggleDay(d)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${
-                f.days?.includes(d) ? 'bg-purple-500 text-white' : 'bg-[#1a1a1a] text-slate-500 border border-[#2a2a2a]'
-              }`}>{DAY_LABELS[ALL_DAYS.indexOf(d)]}</button>
-          ))}
-        </div>
-      </Fld>
-      <Fld label="Ícono">
-        <div className="flex gap-1.5 flex-wrap">
-          {ICON_NAMES.map(n => (
-            <button key={n} onClick={() => up('icon', n)}
-              className={`p-2 rounded-lg border ${f.icon === n ? 'bg-[#D4A843] text-black border-[#D4A843]' : 'bg-[#1a1a1a] text-slate-400 border-[#2a2a2a]'}`}>
-              <Icon name={n} size={16}/>
-            </button>
-          ))}
-        </div>
-      </Fld>
-      <Fld label="Tipo">
-        <button onClick={() => up('isBreak', !f.isBreak)}
-          className={`w-full p-3 rounded-xl border text-left text-sm font-bold ${
-            f.isBreak ? 'bg-orange-500/10 border-orange-500/30 text-orange-300' : 'bg-[#1a1a1a] border-[#2a2a2a] text-slate-400'
-          }`}>
-          {f.isBreak ? 'Es un descanso (se asigna a todos)' : 'Tarea normal'}
-        </button>
-      </Fld>
-      <div className="flex gap-2 mt-5">
-        {existe && (
-          <button onClick={() => onDelete(f.id)} className="px-4 py-3 rounded-xl border border-rose-500/40 text-rose-400 text-[10px] font-black uppercase tracking-wider">
-            <Icon name="trash" size={14}/>
-          </button>
-        )}
-        <button onClick={() => onSave(f)} className="flex-1 py-3 rounded-xl bg-[#D4A843] text-black text-xs font-black uppercase tracking-wider">Guardar</button>
-      </div>
-    </Sheet>
-  );
-};
-
-/* ═══════════════ CONTROL / CUMPLIMIENTO ═══════════════ */
-const ControlView = ({ loc, catalog, staff, days, assign, weekStart, logs, subs }) => {
-  const [scope, setScope] = useState('dia');
-  const [copiado, setCopiado] = useState(false);
-  const [day, setDay] = useState(() => days.includes(todayDayName()) ? todayDayName() : days[0]);
-  const byId = Object.fromEntries(catalog.map(t => [t.id, t]));
-
-  const filas = useMemo(() => {
-    const dias = scope === 'dia' ? [day] : days;
-    const out = [];
-    dias.forEach(d => {
-      const dISO = toISO(dateOfDay(weekStart, d));
-      const dayAssign = (assign && assign[d]) || {};
-      const dayLog = logs[dISO] || {};
-      staff.forEach(p => {
-        sortByTime(catalog, dayAssign[p.id]).forEach(tid => {
-          const t = byId[tid]; if (!t) return;
-          const ts = (dayLog[p.id] || {})[tid] || null;
-          out.push({ dia:d, fecha:dISO, persona:p, tarea:t, ts, estado: estadoTarea(t.time, ts) });
-        });
-      });
-    });
-    return out;
-  }, [scope, day, days, staff, catalog, assign, weekStart, logs]);
+  const filas = useMemo(()=>{
+    const f = scope==='dia' ? reporte.filter(r=>r.day_name===day) : reporte.filter(r=>days.includes(r.day_name));
+    return f.map(r=>({...r, est: estado(r.time_due, r.done_at)}));
+  },[reporte,scope,day,days]);
 
   const st = {
     total: filas.length,
-    a_tiempo: filas.filter(f => f.estado === 'a_tiempo' || f.estado === 'hecha').length,
-    atrasada: filas.filter(f => f.estado === 'atrasada').length,
-    pendiente: filas.filter(f => f.estado === 'pendiente').length,
+    ok: filas.filter(f=>f.est==='a_tiempo'||f.est==='hecha').length,
+    tarde: filas.filter(f=>f.est==='atrasada').length,
+    pend: filas.filter(f=>f.est==='pendiente').length,
+    conFoto: filas.filter(f=>f.photo_url).length,
   };
-  const pct = st.total ? Math.round((st.a_tiempo + st.atrasada) / st.total * 100) : 0;
+  const pct = st.total ? Math.round((st.ok+st.tarde)/st.total*100) : 0;
 
-  const exportCSV = () => {
-    const head = 'Local;Fecha;Dia;Persona;Tarea;Hora asignada;Hora real;Estado';
-    const rows = filas.map(f => [
-      LOCALES[loc].name, f.fecha, DAY_FULL[ALL_DAYS.indexOf(f.dia)], f.persona.name,
-      f.tarea.name, f.tarea.time, f.ts ? hhmm(f.ts) : '', EST_UI[f.estado].txt
-    ].join(';'));
-    const csv = '﻿' + [head, ...rows].join('\n');
-    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `Tareas_${loc.toUpperCase()}_${scope === 'dia' ? toISO(dateOfDay(weekStart, day)) : 'semana_' + toISO(weekStart)}.csv`;
-    a.click();
+  const csv = () => {
+    const head='Local;Fecha;Dia;Persona;Tarea;Hora asignada;Hora real;Estado;Foto';
+    const rows=filas.map(f=>[LOCALES[loc].name,f.work_date,DAY_FULL[ALL_DAYS.indexOf(f.day_name)],f.person_name,
+      f.task_name,f.time_due||'',f.done_at?hhmm(f.done_at):'',EST[f.est].t,f.photo_url||''].join(';'));
+    const blob=new Blob(['﻿'+[head,...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`Tareas_${loc}_${scope==='dia'?toISO(dateOfDay(weekStart,day)):'semana_'+toISO(weekStart)}.csv`; a.click();
   };
-
-  const copiarResumen = () => {
-    const titulo = scope === 'dia'
-      ? `${DAY_FULL[ALL_DAYS.indexOf(day)]} ${fmtDate(dateOfDay(weekStart, day))}`
-      : `Semana del ${fmtDate(weekStart)}`;
-    let txt = `*${LOCALES[loc].name} · Tareas de salón*\n${titulo}\nCumplimiento: ${pct}% (${st.a_tiempo + st.atrasada}/${st.total})\n`;
-    staff.forEach(p => {
-      const suyas = filas.filter(f => f.persona.id === p.id);
-      if (!suyas.length) return;
-      const ok = suyas.filter(f => f.estado !== 'pendiente').length;
-      txt += `\n*${p.name}* — ${ok}/${suyas.length}`;
-      const atr = suyas.filter(f => f.estado === 'atrasada');
-      const pen = suyas.filter(f => f.estado === 'pendiente');
-      if (atr.length) txt += `\n  Atrasadas: ${atr.map(f => `${f.tarea.name} (${hhmm(f.ts)} vs ${f.tarea.time})`).join(', ')}`;
-      if (pen.length) txt += `\n  Sin hacer: ${pen.map(f => f.tarea.name).join(', ')}`;
+  const copiar = () => {
+    const titulo = scope==='dia' ? `${DAY_FULL[ALL_DAYS.indexOf(day)]} ${fmtDate(dateOfDay(weekStart,day))}` : `Semana del ${fmtDate(weekStart)}`;
+    let t=`*${LOCALES[loc].name} · Tareas de salón*\n${titulo}\nCumplimiento: ${pct}% (${st.ok+st.tarde}/${st.total})\n`;
+    const porPersona={};
+    filas.forEach(f=>{ (porPersona[f.person_name]=porPersona[f.person_name]||[]).push(f); });
+    Object.entries(porPersona).forEach(([n,fs])=>{
+      const hechas=fs.filter(f=>f.est!=='pendiente').length;
+      t+=`\n*${n}* — ${hechas}/${fs.length}`;
+      const tarde=fs.filter(f=>f.est==='atrasada'), pend=fs.filter(f=>f.est==='pendiente');
+      if(tarde.length) t+=`\n  Atrasadas: ${tarde.map(f=>`${f.task_name} (${hhmm(f.done_at)} vs ${f.time_due})`).join(', ')}`;
+      if(pend.length)  t+=`\n  Sin hacer: ${pend.map(f=>f.task_name).join(', ')}`;
     });
-    try { navigator.clipboard?.writeText(txt); } catch {}
-    setCopiado(true); setTimeout(() => setCopiado(false), 2200);
+    try{navigator.clipboard?.writeText(t);}catch{}
+    toast('Resumen copiado');
   };
+
+  const personas = [...new Set(filas.map(f=>f.person_name))];
 
   return (
     <div className="space-y-3 fade-in">
       <div className="flex gap-2">
-        {[['dia','Día'],['semana','Semana']].map(([k,l]) => (
-          <button key={k} onClick={() => setScope(k)}
-            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider ${
-              scope === k ? 'bg-[#D4A843] text-black' : 'bg-[#1a1a1a] text-slate-400 border border-[#2a2a2a]'
-            }`}>{l}</button>
+        {[['dia','Día'],['semana','Semana']].map(([k,l])=>(
+          <button key={k} onClick={()=>setScope(k)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider ${scope===k?'bgold text-black':'card2 border dim'}`}>{l}</button>
         ))}
       </div>
-
-      {scope === 'dia' && (
+      {scope==='dia' && (
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-          {days.map(d => (
-            <button key={d} onClick={() => setDay(d)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase min-w-[48px] ${
-                day === d ? 'bg-white text-black' : 'bg-[#1a1a1a] text-slate-400 border border-[#2a2a2a]'
-              }`}>{DAY_LABELS[ALL_DAYS.indexOf(d)]}</button>
+          {days.map(d=>(
+            <button key={d} onClick={()=>setDay(d)} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase min-w-[48px] ${day===d?'bg-[color:var(--tx)] text-[color:var(--bg)]':'card2 border dim'}`}>{DAY_LABELS[ALL_DAYS.indexOf(d)]}</button>
           ))}
         </div>
       )}
 
       <div className="grid grid-cols-4 gap-2">
-        {[['Asignadas',st.total,'text-white'],['A tiempo',st.a_tiempo,'text-emerald-400'],
-          ['Atrasadas',st.atrasada,'text-amber-400'],['Sin hacer',st.pendiente,'text-rose-400']].map(([l,v,c]) => (
-          <div key={l} className="bg-[#151515] border border-[#242424] rounded-xl p-2.5 text-center">
+        {[['Asignadas',st.total,''],['A tiempo',st.ok,'text-emerald-500'],['Atrasadas',st.tarde,'text-amber-500'],['Sin hacer',st.pend,'text-rose-500']].map(([l,v,c])=>(
+          <div key={l} className="card border rounded-xl p-2.5 text-center">
             <p className={`text-xl font-black ${c}`}>{v}</p>
-            <p className="text-[8px] font-black uppercase tracking-wider text-slate-500 mt-0.5">{l}</p>
+            <p className="text-[8px] font-black uppercase tracking-wider dim mt-0.5">{l}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-[#151515] border border-[#242424] rounded-xl p-3">
+      <div className="card border rounded-xl p-3">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Cumplimiento</span>
-          <span className={`text-sm font-black ${pct >= 90 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct}%</span>
+          <span className="text-[10px] font-black uppercase tracking-wider dim">Cumplimiento</span>
+          <span className={`text-sm font-black ${pct>=90?'text-emerald-500':pct>=70?'text-amber-500':'text-rose-500'}`}>{pct}%</span>
         </div>
-        <div className="w-full h-2 bg-white/5 rounded-full">
-          <div className={`h-full rounded-full ${pct >= 90 ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{width:`${pct}%`}}/>
+        <div className="w-full h-2 rounded-full" style={{background:'var(--line)'}}>
+          <div className={`h-full rounded-full ${pct>=90?'bg-emerald-500':pct>=70?'bg-amber-500':'bg-rose-500'}`} style={{width:`${pct}%`}}/>
         </div>
+        <p className="text-[9px] dim font-bold mt-2">{st.conFoto} de {st.total} con foto de respaldo</p>
       </div>
 
       <div className="flex gap-2">
-        <button onClick={copiarResumen} className={`flex-1 flex items-center justify-center gap-1.5 border px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${
-          copiado ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' : 'bg-[#1a1a1a] border-[#2a2a2a] text-slate-300 hover:border-[#D4A843]'
-        }`}>
-          <Icon name={copiado ? 'check' : 'copy'} size={12}/> {copiado ? 'Copiado' : 'Copiar resumen'}
-        </button>
-        <button onClick={exportCSV} className="flex-1 flex items-center justify-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-slate-300 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider hover:border-[#D4A843]">
-          <Icon name="download" size={12}/> Exportar CSV
-        </button>
+        <button onClick={copiar} className="flex-1 flex items-center justify-center gap-1.5 card2 border px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="copy" size={12}/> Copiar resumen</button>
+        <button onClick={csv} className="flex-1 flex items-center justify-center gap-1.5 card2 border px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="download" size={12}/> Exportar CSV</button>
       </div>
 
-      {/* Detalle por persona */}
-      {staff.map(p => {
-        const suyas = filas.filter(f => f.persona.id === p.id);
-        if (!suyas.length) return null;
-        const c = cc(p.color);
-        const dISO = toISO(dateOfDay(weekStart, day));
-        const sub = scope === 'dia' ? ((subs[dISO] || {})[p.id] || null) : null;
-        const ok = suyas.filter(f => f.estado !== 'pendiente').length;
+      {personas.map((n,i)=>{
+        const suyas=filas.filter(f=>f.person_name===n);
+        const ok=suyas.filter(f=>f.est!=='pendiente').length;
+        const col=colorOf(i);
         return (
-          <div key={p.id} className={`rounded-2xl border ${c.bd} bg-[#131313] overflow-hidden`}>
-            <div className={`px-4 py-2.5 ${c.bg} border-b border-white/5 flex justify-between items-center gap-2`}>
+          <div key={n} className="rounded-2xl card border overflow-hidden" style={{borderColor:col+'55'}}>
+            <div className="px-4 py-2.5 border-b flex justify-between items-center" style={{background:col+'14',borderColor:'var(--line)'}}>
               <div className="flex items-center gap-2 min-w-0">
-                <div className={`w-2 h-2 rounded-full ${c.dot}`}/>
-                <span className={`text-sm font-black uppercase tracking-tight ${c.txt} truncate`}>{p.name}</span>
+                <div className="w-2 h-2 rounded-full" style={{background:col}}/>
+                <span className="text-sm font-black uppercase tracking-tight truncate" style={{color:col}}>{n}</span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {scope === 'dia' && (
-                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase border ${
-                    sub ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-white/5 text-slate-500 border-white/10'
-                  }`}>{sub ? `Enviado ${hhmm(sub.ts)}` : 'Sin enviar'}</span>
-                )}
-                <span className="text-[10px] font-black text-slate-400">{ok}/{suyas.length}</span>
-              </div>
+              <span className="text-[10px] font-black dim">{ok}/{suyas.length}</span>
             </div>
-            <div className="divide-y divide-white/5">
-              {suyas.map((f, i) => (
-                <div key={i} className="flex items-center gap-2 px-3 py-2">
-                  {scope === 'semana' && <span className="text-[8px] font-black text-slate-600 w-7 shrink-0 uppercase">{DAY_LABELS[ALL_DAYS.indexOf(f.dia)]}</span>}
-                  <span className="text-[10px] font-black gold w-10 shrink-0">{f.tarea.time}</span>
-                  <span className="text-[11px] font-bold text-slate-300 flex-1 min-w-0 truncate">{f.tarea.name}</span>
-                  <span className="text-[10px] font-black text-white w-9 text-right shrink-0">{f.ts ? hhmm(f.ts) : '—'}</span>
-                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0 w-[62px] text-center ${EST_UI[f.estado].cls}`}>
-                    {EST_UI[f.estado].txt}
-                  </span>
+            <div className="divide-y" style={{borderColor:'var(--line)'}}>
+              {suyas.map((f,j)=>(
+                <div key={j} className="flex items-center gap-2 px-3 py-2">
+                  {scope==='semana' && <span className="text-[8px] font-black dim w-7 shrink-0 uppercase">{DAY_LABELS[ALL_DAYS.indexOf(f.day_name)]}</span>}
+                  <span className="text-[10px] font-black gold w-10 shrink-0">{f.time_due}</span>
+                  <span className="text-[11px] font-bold flex-1 min-w-0 truncate">{f.task_name}</span>
+                  {f.photo_url && <button onClick={()=>setFoto(f)} className="gold shrink-0"><Icon name="camera" size={13}/></button>}
+                  <span className="text-[10px] font-black w-9 text-right shrink-0">{f.done_at?hhmm(f.done_at):'—'}</span>
+                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase shrink-0 w-[62px] text-center ${EST[f.est].c}`}>{EST[f.est].t}</span>
                 </div>
               ))}
             </div>
           </div>
         );
       })}
-      {filas.length === 0 && <p className="text-center text-[11px] text-slate-600 py-8 font-medium">No hay tareas asignadas en este período.</p>}
-    </div>
-  );
-};
+      {!filas.length && <p className="text-center text-[11px] dim py-8 font-medium">No hay tareas asignadas en este período.</p>}
 
-/* ═══════════════ CONFIGURACIÓN ═══════════════ */
-const ConfigView = ({ loc, staff, setStaff, days, setDays, masterPin, setMasterPin, isMaster, onResetCatalog, openDays }) => {
-  const [confirmReset, setConfirmReset] = useState(false);
-  const up = (id, k, v) => setStaff(staff.map(s => s.id === id ? {...s, [k]: v} : s));
-  const add = () => setStaff([...staff, {
-    id:'s' + Date.now(), name:'Nuevo', schedule:'12:00 - 16:00', role:'Garzón',
-    color: COLORS[staff.length % COLORS.length], pin:'', isAdmin:false
-  }]);
-  const del = (id) => setStaff(staff.filter(s => s.id !== id));
-  const pinDup = (p, id) => p && staff.some(s => s.id !== id && String(s.pin) === String(p));
-
-  return (
-    <div className="space-y-4 fade-in">
-      <div>
-        <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-2 block">Días que opera {LOCALES[loc].name}</label>
-        <div className="flex gap-1.5 flex-wrap">
-          {ALL_DAYS.map((d,i) => (
-            <button key={d} onClick={() => {
-              if (days.includes(d)) { if (days.length > 1) setDays(days.filter(x => x !== d)); }
-              else setDays([...days, d].sort((a,b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b)));
-            }} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${
-              days.includes(d) ? 'bg-[#D4A843] text-black' : 'bg-[#1a1a1a] text-slate-500 border border-[#2a2a2a]'
-            }`}>{DAY_LABELS[i]}</button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <label className="text-[9px] font-black uppercase tracking-wider text-slate-500">Equipo de salón · {staff.length}</label>
-          <button onClick={add} className="flex items-center gap-1 text-[10px] font-black gold uppercase"><Icon name="plus" size={12}/> Agregar</button>
-        </div>
-        <div className="space-y-2">
-          {staff.map(p => (
-            <div key={p.id} className="bg-[#151515] rounded-xl p-3 border border-[#242424]">
-              <div className="flex gap-2 items-center mb-2">
-                <div className={`w-3 h-3 rounded-full shrink-0 ${cc(p.color).dot}`}/>
-                <input value={p.name} onChange={e => up(p.id,'name',e.target.value)}
-                  className="flex-1 min-w-0 bg-transparent font-bold text-sm text-white border-b border-transparent focus:border-[#D4A843] outline-none px-1"/>
-                <button onClick={() => del(p.id)} className="text-slate-600 hover:text-rose-400 shrink-0"><Icon name="trash" size={14}/></button>
-              </div>
-              <input value={p.role} onChange={e => up(p.id,'role',e.target.value)} placeholder="Cargo"
-                className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 mb-2"/>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <input value={p.schedule} onChange={e => up(p.id,'schedule',e.target.value)} placeholder="12:00 - 16:00"
-                  className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300"/>
-                <input value={p.pin || ''} onChange={e => up(p.id,'pin',e.target.value.replace(/\D/g,'').slice(0,4))}
-                  placeholder="PIN 4 dígitos" inputMode="numeric"
-                  className={`bg-[#1a1a1a] border rounded-lg px-2 py-1.5 text-[11px] font-black tracking-widest text-white ${
-                    pinDup(p.pin, p.id) ? 'border-rose-500' : 'border-[#2a2a2a]'
-                  }`}/>
-              </div>
-              {pinDup(p.pin, p.id) && <p className="text-[9px] font-bold text-rose-400 mb-2">PIN repetido con otra persona</p>}
-              <div className="flex gap-2 items-center">
-                <select value={p.color} onChange={e => up(p.id,'color',e.target.value)}
-                  className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 flex-1">
-                  {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <button onClick={() => up(p.id,'isAdmin',!p.isAdmin)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase whitespace-nowrap ${
-                    p.isAdmin ? 'bg-[#D4A843] text-black' : 'bg-[#1a1a1a] text-slate-500 border border-[#2a2a2a]'
-                  }`}>{p.isAdmin ? 'Jefatura' : 'Garzón'}</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {isMaster && (
-        <div>
-          <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-2 block">PIN maestro (dueño)</label>
-          <input value={masterPin} onChange={e => setMasterPin(e.target.value.replace(/\D/g,'').slice(0,4))}
-            inputMode="numeric" className={inputCls + ' tracking-[0.4em] font-black'}/>
-          <p className="text-[9px] text-slate-600 mt-1.5 font-medium">Da acceso total en ambos locales. No lo compartas con el equipo.</p>
-        </div>
+      {foto && (
+        <Sheet title={`${foto.task_name} · ${foto.person_name}`} onClose={()=>setFoto(null)}>
+          <img src={foto.photo_url} alt="" className="w-full rounded-xl border" style={{borderColor:'var(--line)'}}/>
+          <p className="text-[10px] dim font-bold mt-2">Marcada a las {hhmm(foto.done_at)} · hora asignada {foto.time_due}</p>
+        </Sheet>
       )}
-
-      <button onClick={() => { if (!confirmReset) { setConfirmReset(true); return; } onResetCatalog(); setConfirmReset(false); }}
-        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border text-[10px] font-black uppercase tracking-wider ${
-          confirmReset ? 'border-rose-500 text-rose-400 bg-rose-500/10' : 'border-[#2a2a2a] text-slate-400 hover:border-rose-500 hover:text-rose-400'
-        }`}>
-        <Icon name="refresh" size={13}/> {confirmReset ? 'Toca de nuevo para confirmar' : 'Restaurar catálogo de tareas original'}
-      </button>
     </div>
   );
 };
 
-/* ═══════════════ APP ═══════════════ */
+/* ═══════════ CATÁLOGO (lectura) ═══════════ */
+const TareasView = ({ catalog, days }) => (
+  <div className="space-y-1.5 fade-in">
+    <p className="text-[10px] font-black uppercase tracking-wider dim mb-2">{catalog.length} tareas · se editan en el SQL o desde el panel de Supabase</p>
+    {[...catalog].sort((a,b)=>{const x=toMin(a.time),y=toMin(b.time);if(x===null&&y===null)return 0;if(x===null)return 1;if(y===null)return -1;return x-y;}).map(t=>(
+      <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl card border">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold truncate">{t.name}</p>
+          <div className="flex gap-1.5 items-center flex-wrap mt-0.5">
+            <span className="text-[9px] font-black gold">{t.time}</span>
+            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${t.priority==='alta'?'bgold text-black':'card2 border dim'}`}>{t.priority}</span>
+            {t.days ? <span className="text-[8px] font-black bg-purple-500/20 text-purple-500 px-1.5 py-0.5 rounded uppercase">Solo {t.days.map(d=>DAY_LABELS[ALL_DAYS.indexOf(d)]).join('/')}</span>
+                    : <span className="text-[8px] font-black bg-emerald-500/15 text-emerald-500 px-1.5 py-0.5 rounded uppercase">Todos los días</span>}
+            {t.photo_required && <span className="text-[8px] font-black card2 border dim px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Icon name="camera" size={9}/> foto</span>}
+            {t.is_break && <span className="text-[8px] font-black bg-orange-500/20 text-orange-500 px-1.5 py-0.5 rounded uppercase">Descanso</span>}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+/* ═══════════ APP ═══════════ */
 const App = () => {
-  const [loc, setLoc]         = useState(() => localStorage.getItem('bc_loc') || null);
-  const [session, setSession] = useState(null);
-  const [ready, setReady]     = useState(false);
+  const [theme,setTheme]=useState(()=>localStorage.getItem('bcops_theme')||'dark');
+  const [loc,setLoc]=useState(()=>localStorage.getItem('bcops_loc')||null);
+  const [user,setUser]=useState(null);
+  const [people,setPeople]=useState([]);
+  const [catalog,setCatalog]=useState([]);
+  const [days,setDays]=useState([]);
+  const [asign,setAsign]=useState({});
+  const [reporte,setReporte]=useState([]);
+  const [weekStart,setWeekStart]=useState(()=>getMonday(new Date()));
+  const [tab,setTab]=useState('semana');
+  const [cargando,setCargando]=useState(true);
+  const [aviso,setAviso]=useState(null);
+  const [msg,setMsg]=useState(null);
+  const toast=(m,t)=>{ setMsg({m,t}); setTimeout(()=>setMsg(null),2600); };
 
-  const [staff, setStaffRaw]     = useState([]);
-  const [catalog, setCatalogRaw] = useState([]);
-  const [days, setDaysRaw]       = useState([]);
-  const [savedAssign, setSavedAssign] = useState(undefined);
-  const [masterPin, setMasterPinRaw]  = useState(DEFAULT_MASTER_PIN);
-  const [logs, setLogs] = useState({});
-  const [subs, setSubs] = useState({});
+  useEffect(()=>{ document.documentElement.classList.toggle('light',theme==='light');
+    document.querySelector('meta[name=theme-color]')?.setAttribute('content',theme==='light'?'#f4f4f5':'#0f0f0f');
+    localStorage.setItem('bcops_theme',theme); },[theme]);
+  const toggleTheme=()=>setTheme(t=>t==='dark'?'light':'dark');
 
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
-  const [tab, setTab] = useState('turno');
-  const [showCfg, setShowCfg] = useState(false);
+  const weekISO=toISO(weekStart);
 
-  const weekISO = toISO(weekStart);
-  const L = loc ? LOCALES[loc] : null;
+  /* Personal: organigrama (quién) × people de Supabase (id + PIN) */
+  useEffect(()=>{
+    if(!loc){ setCargando(false); return; }
+    let vivo=true;
+    (async()=>{
+      setCargando(true);
+      const [orgR, sup, cat] = await Promise.all([
+        fetch('/api/personal').then(r=>r.json()).catch(()=>({ok:false,people:[]})),
+        sbGet('people_public?select=id,name,role,local,station&station=eq.S'),
+        sbGet('salon_task_catalog?select=*&active=eq.true&order=sort_order'),
+      ]);
+      if(!vivo) return;
 
-  /* Sesión guardada por local */
-  useEffect(() => {
-    if (!loc) { setSession(null); return; }
-    setSession(localStorage.getItem(loc + '_session') || null);
-  }, [loc]);
+      const norm=s=>(s||'').normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
+      const supBy=Object.fromEntries((sup||[]).map(p=>[norm(p.name),p]));
+      const delLocal=(orgR.people||[]).filter(p=>p.local===loc);
+      const faltantes=[];
+      const lista=delLocal.map(p=>{
+        const s=supBy[p.key];
+        if(!s) faltantes.push(p.name);
+        return s ? { id:s.id, name:p.name.split(' ')[0], fullName:p.name, role:p.role, puedeAsignar:p.isJefe, pinOk:true }
+                 : { id:'x_'+p.key, name:p.name.split(' ')[0], fullName:p.name, role:p.role, puedeAsignar:p.isJefe, pinOk:false };
+      }).filter(p=>p.pinOk);
 
-  /* Suscripciones base del local */
-  useEffect(() => {
-    if (!loc) return;
-    setReady(false);
-    const offs = [];
-    let pend = 4;
-    const done = () => { if (--pend <= 0) setReady(true); };
-    offs.push(fbOn(loc + '/staffV2',   v => { setStaffRaw(Array.isArray(v) && v.length ? v : LOCALES[loc].staff); done(); }));
-    offs.push(fbOn(loc + '/catalog',   v => { setCatalogRaw(Array.isArray(v) && v.length ? v : defaultCatalog(loc)); done(); }));
-    offs.push(fbOn(loc + '/activeDays',v => { setDaysRaw(Array.isArray(v) && v.length ? v : ALL_DAYS.slice(0, LOCALES[loc].openDays)); done(); }));
-    offs.push(fbOn('config/masterPin', v => { setMasterPinRaw(v || DEFAULT_MASTER_PIN); done(); }));
-    const t = setTimeout(() => setReady(true), 3500);
-    return () => { offs.forEach(f => f()); clearTimeout(t); };
-  }, [loc]);
+      setPeople(lista);
+      setCatalog((cat||[]).map(t=>({...t, time:t.time||''})));
+      setDays(ALL_DAYS.slice(0,LOCALES[loc].openDays));
 
-  /* Asignación de la semana */
-  useEffect(() => {
-    if (!loc) return;
-    setSavedAssign(undefined);
-    return fbOn(`${loc}/assign/${weekISO}`, v => setSavedAssign(v || null));
-  }, [loc, weekISO]);
+      const problemas=[];
+      if(!orgR.ok) problemas.push('No pude leer el organigrama; el personal puede estar incompleto.');
+      if(faltantes.length) problemas.push('Sin PIN en la base (no pueden entrar): '+faltantes.join(', ')+'.');
+      if(!cat||!cat.length) problemas.push('El catálogo de tareas está vacío: falta correr schema_tareas_salon.sql en Supabase.');
+      setAviso(problemas.length?problemas:null);
+      setCargando(false);
+    })();
+    return ()=>{vivo=false};
+  },[loc]);
 
-  /* Registros y envíos de los 7 días de la semana */
-  useEffect(() => {
-    if (!loc) return;
-    const offs = [];
-    ALL_DAYS.forEach(d => {
-      const iso = toISO(dateOfDay(weekStart, d));
-      offs.push(fbOn(`${loc}/log/${iso}`,    v => setLogs(p => ({...p, [iso]: v || {}}))));
-      offs.push(fbOn(`${loc}/submit/${iso}`, v => setSubs(p => ({...p, [iso]: v || {}}))));
-    });
-    return () => offs.forEach(f => f());
-  }, [loc, weekISO]);
+  /* Asignación + reporte de la semana */
+  const cargarSemana = useCallback(async()=>{
+    if(!loc) return;
+    const rows = await sbGet(`salon_assignments?select=day_name,person_id,task_id&local=eq.${loc}&week_start=eq.${weekISO}`);
+    const a={};
+    (rows||[]).forEach(r=>{ (a[r.day_name]=a[r.day_name]||{}); (a[r.day_name][r.person_id]=a[r.day_name][r.person_id]||[]).push(r.task_id); });
+    setAsign(a);
+    const rep = await sbRpc('salon_week_report',{p_local:loc,p_week:weekISO});
+    setReporte(Array.isArray(rep.data)?rep.data:[]);
+  },[loc,weekISO]);
+  useEffect(()=>{ cargarSemana(); },[cargarSemana]);
 
-  /* Escrituras */
-  const setStaff     = (v) => { setStaffRaw(v);   fbSave(loc + '/staffV2', v); };
-  const setCatalog   = (v) => { setCatalogRaw(v); fbSave(loc + '/catalog', v); };
-  const setDays      = (v) => { setDaysRaw(v);    fbSave(loc + '/activeDays', v); };
-  const setMasterPin = (v) => { setMasterPinRaw(v); if (v && v.length === 4) fbSave('config/masterPin', v); };
-
-  /* Checklist dinámico: si la semana no tiene asignación guardada, se genera por rotación */
-  const assign = useMemo(() => {
-    if (savedAssign && Object.keys(savedAssign).length) return savedAssign;
-    if (!catalog.length || !staff.length || !days.length) return {};
-    return autoAssign(catalog, staff, days);
-  }, [savedAssign, catalog, staff, days]);
-  const setAssign = (v) => { setSavedAssign(v); fbSave(`${loc}/assign/${weekISO}`, v); };
-
-  /* Identidad */
-  const isMaster = session === '__master__';
-  const me       = isMaster ? null : staff.find(s => s.id === session);
-  const isAdmin  = isMaster || !!me?.isAdmin;
-
-  /* Sesión inválida (PIN borrado) → salir */
-  useEffect(() => {
-    if (ready && session && !isMaster && !me) doLogout();
-  }, [ready, session, me, isMaster]);
-
-  const login = (id) => { setSession(id); localStorage.setItem(loc + '_session', id); setTab('turno'); };
-  const doLogout = () => { setSession(null); localStorage.removeItem(loc + '_session'); };
-  const pickLocal = (id) => { setLoc(id); localStorage.setItem('bc_loc', id); };
-  const changeLocal = () => { doLogout(); setLoc(null); localStorage.removeItem('bc_loc'); };
-
-  /* Día visible */
-  const hoy = todayDayName();
-  const esSemanaActual = weekISO === toISO(getMonday(new Date()));
-  const [dayView, setDayView] = useState(hoy);
-  useEffect(() => { if (days.length && !days.includes(dayView)) setDayView(days[0]); }, [days]);
-
-  const dISO = useMemo(() => toISO(dateOfDay(weekStart, dayView)), [weekStart, dayView]);
-  const dayLog = logs[dISO] || {};
-  const daySub = subs[dISO] || {};
-  const esHoy = esSemanaActual && dayView === hoy;
-
-  const toggle = useCallback((staffId, taskId) => {
-    const cur = (logs[dISO] || {})[staffId] || {};
-    const val = cur[taskId] ? null : Date.now();
-    setLogs(p => {
-      const nd = {...(p[dISO] || {})};
-      const ns = {...(nd[staffId] || {})};
-      if (val) ns[taskId] = val; else delete ns[taskId];
-      nd[staffId] = ns; return {...p, [dISO]: nd};
-    });
-    fbSave(`${loc}/log/${dISO}/${staffId}/${taskId}`, val);
-  }, [logs, dISO, loc]);
-
-  const submit = (staffId, done, total) => {
-    const rec = { ts: Date.now(), done, total, by: session };
-    setSubs(p => ({...p, [dISO]: {...(p[dISO] || {}), [staffId]: rec}}));
-    fbSave(`${loc}/submit/${dISO}/${staffId}`, rec);
-  };
-  const unsubmit = (staffId) => {
-    setSubs(p => { const nd = {...(p[dISO] || {})}; delete nd[staffId]; return {...p, [dISO]: nd}; });
-    fbSave(`${loc}/submit/${dISO}/${staffId}`, null);
+  /* Guardar un día (o varios, al copiar) */
+  const guardar = async (day, payload) => {
+    if(!user?.puedeAsignar){ toast('Solo los jefes de garzones pueden asignar','error'); return; }
+    const lotes = day ? [[day,payload]] : Object.entries(payload);
+    const prev = asign;
+    const nuevo = {...asign};
+    lotes.forEach(([d,v])=>{ nuevo[d]=v; });
+    setAsign(nuevo);                       /* optimista */
+    for (const [d,v] of lotes) {
+      const limpio={}; Object.entries(v).forEach(([pid,ids])=>{ if(ids&&ids.length) limpio[pid]=ids; });
+      const r = await sbRpc('salon_set_day',{ p_actor:user.id, p_pin:user.pin, p_local:loc, p_week:weekISO, p_day:d, p_assign:limpio });
+      if (r.error) { setAsign(prev); toast(r.error.includes('jefes')?'Solo los jefes de garzones pueden asignar':'No se pudo guardar','error'); return; }
+    }
+    toast('Guardado');
+    cargarSemana();
   };
 
-  /* ── Pantallas de entrada ── */
-  if (!loc) return <LocalPicker onPick={pickLocal}/>;
-  if (!ready) return (
-    <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-4">
+  const pickLocal=(id)=>{ setLoc(id); localStorage.setItem('bcops_loc',id); setUser(null); };
+  const cambiarLocal=()=>{ setUser(null); setLoc(null); localStorage.removeItem('bcops_loc'); };
+
+  if(!loc) return <LocalPicker onPick={pickLocal} theme={theme} toggleTheme={toggleTheme}/>;
+  if(cargando) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
       <img src="logo.png" className="w-20 h-20 object-contain opacity-40 animate-pulse" alt=""/>
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">Cargando</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] dim">Cargando</p>
     </div>
   );
-  if (!session) return <Login loc={loc} staff={staff} masterPin={masterPin} onLogin={login} onBack={changeLocal}/>;
+  if(!user) return <Login loc={loc} people={people} onLogin={setUser} onBack={cambiarLocal} theme={theme} toggleTheme={toggleTheme}/>;
 
-  const TABS = isAdmin
-    ? [['turno','Turnos','users'],['semana','Semana','grid'],['tareas','Tareas','list'],['control','Control','chart']]
-    : [['turno','Mi checklist','checksq']];
-
-  const visibles = isAdmin ? staff : (me ? [me] : []);
+  const L=LOCALES[loc];
+  const esHoySemana = weekISO===toISO(getMonday(new Date()));
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white pb-28">
-      {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#222] px-4 py-3">
+    <div className="min-h-screen pb-28">
+      <header className="sticky top-0 z-40 border-b px-4 py-3" style={{background:'var(--bg)',borderColor:'var(--line)'}}>
         <div className="max-w-3xl mx-auto">
           <div className="flex justify-between items-center gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1147,117 +619,55 @@ const App = () => {
               <div className="min-w-0">
                 <h1 className="text-sm font-black uppercase tracking-tight leading-none truncate">{L.name}</h1>
                 <p className="text-[9px] font-bold gold uppercase tracking-wider mt-0.5">
-                  {isMaster ? 'Dueño' : me?.name}{isAdmin && !isMaster ? ' · Jefatura' : ''}
+                  {user.name}{user.puedeAsignar?' · puede asignar':' · solo lectura'}
                 </p>
               </div>
             </div>
             <div className="flex gap-1 shrink-0">
-              {isAdmin && (
-                <button onClick={() => setShowCfg(true)} className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-white/5"><Icon name="settings" size={17}/></button>
-              )}
-              <button onClick={changeLocal} className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-white/5" title="Cambiar local"><Icon name="home" size={17}/></button>
-              <button onClick={doLogout} className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-white/5"><Icon name="logout" size={17}/></button>
+              <button onClick={toggleTheme} className="p-2 rounded-lg dim"><Icon name={theme==='dark'?'sun':'moon'} size={17}/></button>
+              <button onClick={cambiarLocal} className="p-2 rounded-lg dim"><Icon name="home" size={17}/></button>
+              <button onClick={()=>setUser(null)} className="p-2 rounded-lg dim"><Icon name="logout" size={17}/></button>
             </div>
           </div>
-
-          {/* Navegación de semana */}
           <div className="flex items-center justify-between mt-2.5">
-            <button onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate()-7); setWeekStart(d); }}
-              className="px-2 text-slate-600 hover:text-white text-lg font-bold">‹</button>
-            <button onClick={() => setWeekStart(getMonday(new Date()))} className="flex items-center gap-1.5 text-slate-400 hover:text-white">
+            <button onClick={()=>{const d=new Date(weekStart);d.setDate(d.getDate()-7);setWeekStart(d);}} className="px-2 dim text-lg font-bold">‹</button>
+            <button onClick={()=>setWeekStart(getMonday(new Date()))} className="flex items-center gap-1.5 dim">
               <Icon name="calendar" size={12}/>
               <span className="text-[10px] font-black uppercase tracking-wider">Semana del {fmtDate(weekStart)}</span>
-              {!esSemanaActual && <span className="text-[8px] font-black bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase">Otra semana</span>}
+              {!esHoySemana && <span className="text-[8px] font-black bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded uppercase">Otra semana</span>}
             </button>
-            <button onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate()+7); setWeekStart(d); }}
-              className="px-2 text-slate-600 hover:text-white text-lg font-bold">›</button>
+            <button onClick={()=>{const d=new Date(weekStart);d.setDate(d.getDate()+7);setWeekStart(d);}} className="px-2 dim text-lg font-bold">›</button>
           </div>
-
-          {/* Días (solo en vista Turnos) */}
-          {tab === 'turno' && (
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar mt-2">
-              {days.map(d => {
-                const iso = toISO(dateOfDay(weekStart, d));
-                const lg = logs[iso] || {};
-                const asig = Object.values((assign && assign[d]) || {}).flat().length;
-                const hechas = Object.values(lg).reduce((a, o) => a + Object.keys(o || {}).length, 0);
-                const prog = asig ? Math.round(hechas / asig * 100) : 0;
-                return (
-                  <button key={d} onClick={() => setDayView(d)}
-                    className={`flex flex-col items-center px-3 py-1.5 rounded-xl min-w-[52px] transition-all ${
-                      dayView === d ? 'bg-white text-black' : 'bg-[#1a1a1a] text-slate-500 border border-[#2a2a2a]'
-                    }`}>
-                    <span className="text-[10px] font-black uppercase">{DAY_LABELS[ALL_DAYS.indexOf(d)]}</span>
-                    <div className={`w-full h-0.5 rounded-full mt-1 ${dayView === d ? 'bg-black/20' : 'bg-white/10'}`}>
-                      <div className={`h-full rounded-full ${dayView === d ? 'bg-black' : 'bg-[#D4A843]'}`} style={{width:`${prog}%`}}/>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto p-3 space-y-3">
-        {tab === 'turno' && (
-          <>
-            <div className="flex items-center justify-between px-1">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                {DAY_FULL[ALL_DAYS.indexOf(dayView)]} {fmtDate(dateOfDay(weekStart, dayView))}
-              </p>
-              {!esHoy && <span className="text-[9px] font-black uppercase text-amber-400/80">Solo lectura · no es hoy</span>}
-            </div>
-            {visibles.map(p => (
-              <TurnoCard key={p.id} person={p} catalog={catalog}
-                taskIds={(assign[dayView] || {})[p.id]}
-                plog={dayLog[p.id] || {}} psub={daySub[p.id] || null}
-                canCheck={isAdmin || (esHoy && p.id === session)}
-                isAdmin={isAdmin}
-                onToggle={toggle} onSubmit={submit} onUnsubmit={unsubmit}/>
-            ))}
-          </>
+        {aviso && (
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 space-y-1">
+            {aviso.map((a,i)=><p key={i} className="text-[10px] font-bold text-rose-500 flex gap-1.5"><Icon name="alert" size={12}/> {a}</p>)}
+          </div>
         )}
-
-        {tab === 'semana' && isAdmin && (
-          <SemanaView catalog={catalog} staff={staff} days={days} assign={assign} setAssign={setAssign}
-            weekStart={weekStart} onAuto={() => setAssign(autoAssign(catalog, staff, days))}/>
-        )}
-        {tab === 'tareas'  && isAdmin && <TareasView catalog={catalog} setCatalog={setCatalog} days={days}/>}
-        {tab === 'control' && isAdmin && (
-          <ControlView loc={loc} catalog={catalog} staff={staff} days={days} assign={assign}
-            weekStart={weekStart} logs={logs} subs={subs}/>
-        )}
+        {tab==='semana'  && <SemanaView loc={loc} catalog={catalog} people={people} days={days} weekStart={weekStart}
+                              asign={asign} guardar={guardar} puedeAsignar={!!user.puedeAsignar} toast={toast}/>}
+        {tab==='control' && <ControlView loc={loc} weekStart={weekStart} days={days} reporte={reporte} toast={toast}/>}
+        {tab==='tareas'  && <TareasView catalog={catalog} days={days}/>}
       </main>
 
-      {/* NAV INFERIOR */}
-      {TABS.length > 1 && (
-        <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#141414]/95 backdrop-blur border-t border-[#222] px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <div className="max-w-3xl mx-auto grid grid-cols-4 gap-1">
-            {TABS.map(([k, label, ic]) => (
-              <button key={k} onClick={() => setTab(k)}
-                className={`flex flex-col items-center gap-1 py-2 rounded-xl transition-all ${
-                  tab === k ? 'bg-[#D4A843] text-black' : 'text-slate-500'
-                }`}>
-                <Icon name={ic} size={17}/>
-                <span className="text-[8px] font-black uppercase tracking-wider">{label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-      )}
+      <nav className="fixed bottom-0 inset-x-0 z-40 border-t px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={{background:'var(--card)',borderColor:'var(--line)'}}>
+        <div className="max-w-3xl mx-auto grid grid-cols-3 gap-1">
+          {[['semana','Asignar','grid'],['control','Control','chart'],['tareas','Tareas','list']].map(([k,l,ic])=>(
+            <button key={k} onClick={()=>setTab(k)} className={`flex flex-col items-center gap-1 py-2 rounded-xl ${tab===k?'bgold text-black':'dim'}`}>
+              <Icon name={ic} size={17}/>
+              <span className="text-[8px] font-black uppercase tracking-wider">{l}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
 
-      {showCfg && (
-        <Sheet title="Configuración" onClose={() => setShowCfg(false)}>
-          <ConfigView loc={loc} staff={staff} setStaff={setStaff} days={days} setDays={setDays}
-            masterPin={masterPin} setMasterPin={setMasterPin} isMaster={isMaster}
-            openDays={L.openDays}
-            onResetCatalog={() => setCatalog(defaultCatalog(loc))}/>
-        </Sheet>
-      )}
+      <Toast msg={msg?.m} tipo={msg?.t}/>
 
-      <footer className="mt-6 text-center opacity-25 pb-2">
-        <p className="text-[8px] font-black uppercase tracking-[0.4em]">Black Chicken · Tareas de Salón 2026</p>
+      <footer className="mt-6 text-center opacity-30 pb-2">
+        <p className="text-[8px] font-black uppercase tracking-[0.4em]">Black Chicken · Planificación de Salón 2026</p>
       </footer>
     </div>
   );
