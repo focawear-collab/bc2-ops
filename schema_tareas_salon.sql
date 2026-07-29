@@ -13,6 +13,25 @@
 -- ============================================================
 
 -- ─────────────────────────────────────────────
+-- 0) MIGRACIÓN desde la primera versión
+--    Si ya corriste el SQL anterior, la tabla existe con la columna
+--    llamada "time" (palabra reservada en Postgres). Esto la renombra
+--    a time_due sin perder los datos. Si es la primera vez, no hace nada.
+-- ─────────────────────────────────────────────
+do $$
+begin
+  if to_regclass('public.salon_task_catalog') is not null
+     and exists (select 1 from information_schema.columns
+                  where table_schema='public' and table_name='salon_task_catalog' and column_name='time')
+     and not exists (select 1 from information_schema.columns
+                  where table_schema='public' and table_name='salon_task_catalog' and column_name='time_due')
+  then
+    execute 'alter table public.salon_task_catalog rename column "time" to time_due';
+    raise notice 'Columna "time" renombrada a time_due.';
+  end if;
+end $$;
+
+-- ─────────────────────────────────────────────
 -- 1) CATÁLOGO DE TAREAS
 -- ─────────────────────────────────────────────
 create table if not exists salon_task_catalog (
