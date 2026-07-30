@@ -34,23 +34,14 @@ returns boolean language sql stable security definer set search_path = public as
   select exists (
     select 1 from people
      where id = p_person and pin = p_pin
-       and (active or role ilike 'due%o')
+       and (active or role ilike 'due%o' or role ilike 'administrador%')
   );
 $$;
 
 -- ─────────────────────────────────────────────
--- 3) Login del dueño: devuelve su id solo si el PIN calza
---    Devuelve 0 filas si el PIN es incorrecto. No expone el PIN.
+-- 3) Login de los perfiles ocultos (dueño y administración)
+--    Se define en la PARTE 4, más abajo, con una sola versión.
 -- ─────────────────────────────────────────────
-create or replace function salon_owner_login(p_pin text)
-returns table (id int, name text, role text)
-language sql stable security definer set search_path = public as $$
-  select p.id, split_part(p.name,' ',1), p.role
-    from people p
-   where p.role ilike 'due%o' and p.pin = p_pin
-   limit 1;
-$$;
-grant execute on function salon_owner_login(text) to anon;
 
 -- ─────────────────────────────────────────────
 -- 4) Permiso de asignar: jefes de garzones activos + el dueño oculto
@@ -66,6 +57,24 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 grant execute on function salon_can_assign(int) to anon;
+
+-- ─────────────────────────────────────────────
+-- 4b) Login de los perfiles ocultos (dueño y administración).
+--     Devuelve además si esa persona puede asignar, para que la app
+--     sepa si mostrarle los botones o dejarla en solo lectura.
+--     Devuelve 0 filas si el PIN es incorrecto. No expone el PIN.
+-- ─────────────────────────────────────────────
+drop function if exists salon_owner_login(text);
+create function salon_owner_login(p_pin text)
+returns table (id int, name text, role text, puede_asignar boolean)
+language sql stable security definer set search_path = public as $$
+  select p.id, split_part(p.name,' ',1), p.role, salon_can_assign(p.id)
+    from people p
+   where p.pin = p_pin
+     and (p.role ilike 'due%o' or p.role ilike 'administrador%')
+   limit 1;
+$$;
+grant execute on function salon_owner_login(text) to anon;
 
 -- ─────────────────────────────────────────────
 -- 5) Las funciones de escritura pasan a usar salon_pin_ok
@@ -95,7 +104,7 @@ grant execute on function salon_set_day(int, text, text, date, text, jsonb) to a
 create or replace function salon_log_task(
   p_person int, p_pin text, p_local text, p_task text, p_photo text, p_date date default null
 ) returns void language plpgsql security definer set search_path = public as $$
-declare v_req boolean; v_name text; v_time text; v_date date;
+declare v_req boolean; v_name text; v_time text; v_date date; v_dia text;
 begin
   if not salon_pin_ok(p_person, p_pin) then raise exception 'PIN invalido'; end if;
   v_date := coalesce(p_date, current_date);
@@ -103,6 +112,20 @@ begin
   select name, time_due, photo_required into v_name, v_time, v_req
     from salon_task_catalog where id = p_task and active;
   if not found then raise exception 'tarea no existe'; end if;
+
+  /* Solo se puede marcar una tarea que esté asignada a esa persona ese día */
+  v_dia := case extract(isodow from v_date)
+             when 1 then 'lunes' when 2 then 'martes' when 3 then 'miercoles'
+             when 4 then 'jueves' when 5 then 'viernes' when 6 then 'sabado'
+             else 'domingo' end;
+  if not exists (
+    select 1 from salon_assignments a
+     where a.local = p_local and a.person_id = p_person and a.task_id = p_task
+       and a.day_name = v_dia
+       and a.week_start = (v_date - (extract(isodow from v_date)::int - 1))
+  ) then
+    raise exception 'esa tarea no esta asignada a esta persona hoy';
+  end if;
 
   if v_req and coalesce(p_photo,'') = '' then
     raise exception 'esta tarea requiere foto';
@@ -341,3 +364,52 @@ $$;
 grant execute on function salon_task_catalog_all(text) to anon;
 
 select 'tareas en catalogo' as prueba, count(*) as total from salon_task_catalog;
+
+-- ============================================================
+-- PARTE 4 · NELSI (Administración) — acceso de SOLO LECTURA
+--
+-- Ve todo lo asignado y el cumplimiento de los dos locales.
+-- NO puede crear ni modificar nada: ni tareas, ni asignaciones,
+-- ni el equipo de la semana. Eso se valida en el servidor, no en
+-- la pantalla, así que no se puede saltar.
+--
+-- Igual que Jonathan, queda FUERA del roster visible: no aparece
+-- en la lista "¿Quién eres?" de bc-checklist.
+--
+-- Su PIN se elige solo entre los que estén libres y se muestra al
+-- final de esta consulta. Anótalo y entrégaselo en privado.
+-- ============================================================
+
+do $$
+declare v_pin text;
+begin
+  if exists (select 1 from people where name = 'Nelsi Rodriguez') then
+    update people set role = 'Administradora', local = 'AMBOS', station = 'B', active = false
+     where name = 'Nelsi Rodriguez';
+  else
+    select c into v_pin
+      from unnest(array['4090','4190','4290','4390','4490','4590','4690']) c
+     where not exists (select 1 from people p where p.pin = c)
+     limit 1;
+    if v_pin is null then raise exception 'no quedan PINs libres en la lista de candidatos'; end if;
+    insert into people (name, role, local, station, pin, active)
+         values ('Nelsi Rodriguez','Administradora','AMBOS','B', v_pin, false);
+    raise notice 'PIN de Nelsi: %', v_pin;
+  end if;
+end $$;
+
+-- ─────────────────────────────────────────────
+-- VERIFICACIÓN PARTE 4
+--   · Nelsi entra y NO puede asignar
+--   · No aparece en la lista del equipo
+--   · Su PIN, para que se lo entregues
+-- ─────────────────────────────────────────────
+select 'quien puede asignar' as prueba,
+       string_agg(name, ', ' order by name) as personas
+  from people where salon_can_assign(id);
+
+select 'perfiles ocultos' as prueba, name, role, pin,
+       salon_can_assign(id) as puede_asignar,
+       exists (select 1 from people_public pp where pp.id = people.id) as aparece_en_la_lista
+  from people
+ where role ilike 'due%o' or role ilike 'administrador%';

@@ -239,11 +239,14 @@ const Login = ({ loc, people, onLogin, onBack, theme, toggleTheme }) => {
   const L=LOCALES[loc];
   const intentar = async (p) => {
     setBusy(true);
-    /* El dueño no está en el roster visible: se valida aparte */
+    /* Dueño y administración no están en el roster visible: se validan aparte.
+       La propia función dice si esa persona puede asignar o entra en solo lectura. */
     const own = await sbRpc('salon_owner_login', { p_pin: p });
     if (Array.isArray(own.data) && own.data.length) {
       const o = own.data[0];
-      setBusy(false); onLogin({ id:o.id, name:o.name, role:o.role, pin:p, puedeAsignar:true }); return;
+      setBusy(false);
+      onLogin({ id:o.id, name:o.name, role:o.role, pin:p, puedeAsignar: o.puede_asignar === true });
+      return;
     }
     for (const per of people) {
       const r = await sbRpc('verify_pin', { p_person: per.id, p_pin: p });
