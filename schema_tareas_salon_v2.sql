@@ -271,3 +271,73 @@ grant execute on function salon_set_day(int, text, text, date, text, jsonb) to a
 -- VERIFICACIÓN PARTE 2
 -- ─────────────────────────────────────────────
 select 'garzones activos' as prueba, count(*) as total from people_public where station='S';
+
+-- ============================================================
+-- PARTE 3 · CATÁLOGO EDITABLE DESDE LA APP
+--
+-- Crear y editar tareas sin tocar SQL. Lo pueden hacer los jefes de
+-- garzones y el dueño (los mismos que asignan).
+-- Las tareas no se borran: se desactivan, para no perder el historial
+-- de lo que ya se hizo.
+-- ============================================================
+
+create or replace function salon_task_upsert(
+  p_actor int, p_pin text,
+  p_id text, p_name text, p_icon text, p_time text,
+  p_priority text, p_days text[], p_photo_required boolean,
+  p_is_break boolean, p_locals text[], p_sort int
+) returns text language plpgsql security definer set search_path = public as $$
+declare v_id text;
+begin
+  if not salon_pin_ok(p_actor, p_pin) then raise exception 'PIN invalido'; end if;
+  if not salon_can_assign(p_actor)    then raise exception 'no tienes permiso para editar las tareas'; end if;
+  if coalesce(btrim(p_name),'') = ''  then raise exception 'la tarea necesita un nombre'; end if;
+  if coalesce(array_length(p_locals,1),0) = 0 then raise exception 'elige al menos un local'; end if;
+
+  v_id := coalesce(nullif(btrim(p_id),''),
+                   't_' || substr(md5(p_name || clock_timestamp()::text), 1, 10));
+
+  insert into salon_task_catalog
+        (id, name, icon, time_due, priority, days, photo_required, is_break, locals, sort_order, active)
+  values (v_id, btrim(p_name), coalesce(p_icon,'checksq'), nullif(btrim(p_time),''),
+          coalesce(p_priority,'media'), p_days, coalesce(p_photo_required,true),
+          coalesce(p_is_break,false), p_locals, coalesce(p_sort,50), true)
+  on conflict (id) do update set
+    name = excluded.name, icon = excluded.icon, time_due = excluded.time_due,
+    priority = excluded.priority, days = excluded.days,
+    photo_required = excluded.photo_required, is_break = excluded.is_break,
+    locals = excluded.locals, sort_order = excluded.sort_order;
+
+  return v_id;
+end $$;
+grant execute on function salon_task_upsert(int,text,text,text,text,text,text,text[],boolean,boolean,text[],int) to anon;
+
+-- Activar / desactivar. Al desactivar se quitan sus asignaciones futuras,
+-- pero el historial de lo ya hecho (salon_task_log) queda intacto.
+create or replace function salon_task_set_active(p_actor int, p_pin text, p_id text, p_active boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not salon_pin_ok(p_actor, p_pin) then raise exception 'PIN invalido'; end if;
+  if not salon_can_assign(p_actor)    then raise exception 'no tienes permiso para editar las tareas'; end if;
+
+  update salon_task_catalog set active = p_active where id = p_id;
+
+  if not p_active then
+    delete from salon_assignments
+     where task_id = p_id
+       and week_start >= (current_date - (extract(isodow from current_date)::int - 1));
+  end if;
+end $$;
+grant execute on function salon_task_set_active(int, text, text, boolean) to anon;
+
+-- Catálogo completo (incluye las desactivadas, para poder reactivarlas)
+create or replace function salon_task_catalog_all(p_local text)
+returns setof salon_task_catalog
+language sql stable security definer set search_path = public as $$
+  select * from salon_task_catalog
+   where p_local is null or locals is null or p_local = any(locals)
+   order by active desc, (time_due = 'cierre'), time_due, sort_order;
+$$;
+grant execute on function salon_task_catalog_all(text) to anon;
+
+select 'tareas en catalogo' as prueba, count(*) as total from salon_task_catalog;

@@ -108,9 +108,27 @@ const Icon = ({ name, size=16 }) => {
     moon:<svg {...P}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
     camera:<svg {...P}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
     refresh:<svg {...P}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+    /* íconos de tareas — deben existir también en bc-checklist */
+    checksq:<svg {...P}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>,
+    sparkles:<svg {...P}><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+    broom:<svg {...P}><path d="M13 11 9.5 7.5"/><path d="M18 2 12 8"/><path d="m9 9-5 5c-1 1-1 3 0 4l1 1c1 1 3 1 4 0l5-5Z"/><path d="M5 21h14"/></svg>,
+    window:<svg {...P}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>,
+    droplet:<svg {...P}><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>,
+    package:<svg {...P}><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
+    utensils:<svg {...P}><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
+    glass:<svg {...P}><path d="M15.2 22H8.8a2 2 0 0 1-2-1.79L5 3h14l-1.81 17.21A2 2 0 0 1 15.2 22Z"/><path d="M6 12a5 5 0 0 1 6 0 5 5 0 0 0 6 0"/></svg>,
+    bath:<svg {...P}><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.68 3 4 3.68 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><line x1="10" x2="8" y1="5" y2="7"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="7" x2="7" y1="19" y2="21"/><line x1="17" x2="17" y1="19" y2="21"/></svg>,
+    store:<svg {...P}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>,
+    fridge:<svg {...P}><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M5 10h14"/><path d="M9 6v1"/><path d="M9 14v1"/></svg>,
+    monitor:<svg {...P}><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>,
+    cart:<svg {...P}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>,
+    coffee:<svg {...P}><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a2 2 0 1 1 0 4H4"/></svg>,
+    truck:<svg {...P}><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>,
+    user:<svg {...P}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
   };
   return I[name] || I.check;
 };
+const ICON_NAMES = ['checksq','sparkles','broom','window','droplet','package','utensils','glass','bath','store','fridge','monitor','cart','coffee','truck','user','clock','list'];
 
 /* ═══════════ REPARTO ALEATORIO / EQUITATIVO ═══════════ */
 function repartir(catalog, people, day, aleatorio, semilla) {
@@ -178,6 +196,14 @@ const Sheet = ({ title, onClose, children }) => (
     </div>
   </div>
 );
+const Fld = ({ label, children }) => (
+  <div className="mb-3">
+    <label className="text-[9px] font-black uppercase tracking-wider dim mb-1.5 block">{label}</label>
+    {children}
+  </div>
+);
+const inputCls = "w-full card2 border rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-[color:var(--gold)]";
+
 const Toast = ({ msg, tipo }) => msg ? (
   <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl text-xs font-bold shadow-xl fade-in ${
     tipo==='error' ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>{msg}</div>
@@ -643,27 +669,197 @@ const ControlView = ({ loc, weekStart, days, reporte, toast }) => {
   );
 };
 
-/* ═══════════ CATÁLOGO (lectura) ═══════════ */
-const TareasView = ({ catalog, days }) => (
-  <div className="space-y-1.5 fade-in">
-    <p className="text-[10px] font-black uppercase tracking-wider dim mb-2">{catalog.length} tareas · se editan en el SQL o desde el panel de Supabase</p>
-    {[...catalog].sort((a,b)=>{const x=toMin(a.time),y=toMin(b.time);if(x===null&&y===null)return 0;if(x===null)return 1;if(y===null)return -1;return x-y;}).map(t=>(
-      <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl card border">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold truncate">{t.name}</p>
-          <div className="flex gap-1.5 items-center flex-wrap mt-0.5">
-            <span className="text-[9px] font-black gold">{t.time}</span>
-            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${t.priority==='alta'?'bgold text-black':'card2 border dim'}`}>{t.priority}</span>
-            {t.days ? <span className="text-[8px] font-black bg-purple-500/20 text-purple-500 px-1.5 py-0.5 rounded uppercase">Solo {t.days.map(d=>DAY_LABELS[ALL_DAYS.indexOf(d)]).join('/')}</span>
-                    : <span className="text-[8px] font-black bg-emerald-500/15 text-emerald-500 px-1.5 py-0.5 rounded uppercase">Todos los días</span>}
-            {t.photo_required && <span className="text-[8px] font-black card2 border dim px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Icon name="camera" size={9}/> foto</span>}
-            {t.is_break && <span className="text-[8px] font-black bg-orange-500/20 text-orange-500 px-1.5 py-0.5 rounded uppercase">Descanso</span>}
-          </div>
+/* ═══════════ CATÁLOGO DE TAREAS (editable) ═══════════ */
+const TareaEditor = ({ t, days, loc, onSave, onClose, onToggleActive, guardando }) => {
+  const [f,setF]=useState(t);
+  const [err,setErr]=useState('');
+  const up=(k,v)=>setF(p=>({...p,[k]:v}));
+  const esNueva=!f.id;
+  const toggleDia=(d)=>{
+    const cur=f.days||[];
+    const nd=cur.includes(d)?cur.filter(x=>x!==d):[...cur,d].sort((a,b)=>ALL_DAYS.indexOf(a)-ALL_DAYS.indexOf(b));
+    up('days',nd.length?nd:null);
+  };
+  const toggleLocal=(L)=>{
+    const cur=f.locals||['BC1','BC2'];
+    const nl=cur.includes(L)?cur.filter(x=>x!==L):[...cur,L];
+    up('locals',nl);
+  };
+  const guardar=()=>{
+    if(!String(f.name||'').trim()){ setErr('Ponle un nombre a la tarea.'); return; }
+    if(!(f.locals||['BC1','BC2']).length){ setErr('Elige al menos un local.'); return; }
+    const hora=String(f.time_due||'').trim();
+    if(hora && hora!=='cierre' && !/^\d{1,2}:\d{2}$/.test(hora)){ setErr('La hora va como 15:00, o escribe "cierre".'); return; }
+    setErr(''); onSave(f);
+  };
+
+  return (
+    <Sheet title={esNueva?'Nueva tarea':'Editar tarea'} onClose={onClose}>
+      <Fld label="¿Qué hay que hacer?">
+        <input className={inputCls} value={f.name||''} onChange={e=>up('name',e.target.value)}
+          placeholder="Ej: Limpiar la lámpara de la entrada" autoFocus/>
+      </Fld>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Fld label="¿A qué hora?">
+          <input className={inputCls} value={f.time_due||''} onChange={e=>up('time_due',e.target.value)} placeholder="15:00 o cierre"/>
+        </Fld>
+        <Fld label="Prioridad">
+          <select className={inputCls} value={f.priority||'media'} onChange={e=>up('priority',e.target.value)}>
+            <option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option>
+          </select>
+        </Fld>
+      </div>
+
+      <Fld label="¿Cada cuánto?">
+        <div className="flex gap-1.5 flex-wrap">
+          <button onClick={()=>up('days',null)}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${!f.days?'bgold text-black':'card2 border dim'}`}>
+            Todos los días
+          </button>
+          {ALL_DAYS.map((d,i)=>(
+            <button key={d} onClick={()=>toggleDia(d)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${
+                f.days&&f.days.includes(d)?'bg-purple-500 text-white':'card2 border dim'}`}>{DAY_LABELS[i]}</button>
+          ))}
+        </div>
+        <p className="text-[10px] dim font-medium mt-1.5">
+          {f.days ? `Solo ${f.days.map(d=>DAY_FULL[ALL_DAYS.indexOf(d)].toLowerCase()).join(', ')}.`
+                  : 'Aparece todos los días que el local opera.'}
+        </p>
+      </Fld>
+
+      <Fld label="¿Necesita foto de respaldo?">
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={()=>up('photo_required',true)}
+            className={`p-3 rounded-xl border text-left ${f.photo_required!==false?'bg-[#D4A843]/10 border-[color:var(--gold)]':'card2'}`}>
+            <p className="text-[12px] font-black flex items-center gap-1.5"><Icon name="camera" size={13}/> Sí, obligatoria</p>
+            <p className="text-[9px] dim font-medium mt-0.5">No se puede marcar sin foto</p>
+          </button>
+          <button onClick={()=>up('photo_required',false)}
+            className={`p-3 rounded-xl border text-left ${f.photo_required===false?'bg-[#D4A843]/10 border-[color:var(--gold)]':'card2'}`}>
+            <p className="text-[12px] font-black">No hace falta</p>
+            <p className="text-[9px] dim font-medium mt-0.5">Puede adjuntarla igual</p>
+          </button>
+        </div>
+      </Fld>
+
+      <Fld label="¿En qué locales?">
+        <div className="flex gap-1.5">
+          {['BC1','BC2'].map(L=>{
+            const on=(f.locals||['BC1','BC2']).includes(L);
+            return (
+              <button key={L} onClick={()=>toggleLocal(L)}
+                className={`flex-1 px-3 py-2.5 rounded-xl text-[11px] font-black uppercase border ${
+                  on?'bgold text-black border-[color:var(--gold)]':'card2 dim'}`}>{LOCALES[L].name}</button>
+            );
+          })}
+        </div>
+      </Fld>
+
+      <Fld label="Ícono">
+        <div className="flex gap-1.5 flex-wrap">
+          {ICON_NAMES.map(n=>(
+            <button key={n} onClick={()=>up('icon',n)}
+              className={`p-2 rounded-lg border ${f.icon===n?'bgold text-black border-[color:var(--gold)]':'card2 dim'}`}>
+              <Icon name={n} size={16}/>
+            </button>
+          ))}
+        </div>
+      </Fld>
+
+      <Fld label="Tipo">
+        <button onClick={()=>up('is_break',!f.is_break)}
+          className={`w-full p-3 rounded-xl border text-left text-sm font-bold ${
+            f.is_break?'bg-orange-500/10 border-orange-500/40 text-orange-500':'card2 dim'}`}>
+          {f.is_break?'Es un descanso — se le asigna a todos automáticamente':'Tarea normal'}
+        </button>
+      </Fld>
+
+      {err && <p className="text-[11px] font-bold text-rose-500 mb-3">{err}</p>}
+
+      <div className="flex gap-2 mt-4">
+        {!esNueva && (
+          <button onClick={()=>onToggleActive(f)}
+            className={`px-4 py-3 rounded-xl border text-[10px] font-black uppercase tracking-wider ${
+              f.active===false?'border-emerald-500/50 text-emerald-500':'border-rose-500/40 text-rose-500'}`}>
+            {f.active===false?'Reactivar':'Desactivar'}
+          </button>
+        )}
+        <button disabled={guardando} onClick={guardar}
+          className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider ${
+            guardando?'card2 border dim':'bgold text-black'}`}>
+          {guardando?'Guardando…':'Guardar tarea'}
+        </button>
+      </div>
+      {!esNueva && (
+        <p className="text-[10px] dim font-medium mt-3">
+          Las tareas no se borran: al desactivarlas dejan de aparecer y se quitan de las semanas
+          que vienen, pero el historial de lo ya hecho queda intacto.
+        </p>
+      )}
+    </Sheet>
+  );
+};
+
+const TareasView = ({ loc, catalogAll, days, puedeEditar, onSave, onToggleActive, guardando }) => {
+  const [edit,setEdit]=useState(null);
+  const activas=catalogAll.filter(t=>t.active!==false);
+  const inactivas=catalogAll.filter(t=>t.active===false);
+  const nueva=()=>setEdit({ name:'', icon:'checksq', time_due:'15:00', priority:'media',
+                            days:null, photo_required:true, is_break:false, locals:['BC1','BC2'], sort_order:50 });
+
+  const Fila = ({t}) => (
+    <button onClick={()=>puedeEditar&&setEdit({...t})}
+      className={`w-full flex items-center gap-3 p-3 rounded-xl card border text-left ${
+        puedeEditar?'hover:border-[color:var(--gold)]':''} ${t.active===false?'opacity-50':''}`}>
+      <div className={`p-2 rounded-lg shrink-0 ${t.is_break?'bg-orange-500/15 text-orange-500':'card2 dim'}`}>
+        <Icon name={t.icon} size={16}/>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold truncate">{t.name}</p>
+        <div className="flex gap-1.5 items-center flex-wrap mt-0.5">
+          <span className="text-[9px] font-black gold">{t.time_due||'sin hora'}</span>
+          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
+            t.priority==='alta'?'bgold text-black':'card2 border dim'}`}>{t.priority}</span>
+          {t.days
+            ? <span className="text-[8px] font-black bg-purple-500/20 text-purple-500 px-1.5 py-0.5 rounded uppercase">Solo {t.days.map(d=>DAY_LABELS[ALL_DAYS.indexOf(d)]).join('/')}</span>
+            : <span className="text-[8px] font-black bg-emerald-500/15 text-emerald-500 px-1.5 py-0.5 rounded uppercase">Todos los días</span>}
+          {t.photo_required!==false && <span className="text-[8px] font-black card2 border dim px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><Icon name="camera" size={9}/> foto</span>}
+          {(t.locals||[]).length===1 && <span className="text-[8px] font-black card2 border dim px-1.5 py-0.5 rounded uppercase">solo {t.locals[0]}</span>}
+          {t.is_break && <span className="text-[8px] font-black bg-orange-500/20 text-orange-500 px-1.5 py-0.5 rounded uppercase">Descanso</span>}
         </div>
       </div>
-    ))}
-  </div>
-);
+      {puedeEditar && <Icon name="settings" size={14}/>}
+    </button>
+  );
+
+  return (
+    <div className="space-y-1.5 fade-in">
+      <div className="flex justify-between items-center mb-1">
+        <p className="text-[10px] font-black uppercase tracking-wider dim">{activas.length} tareas activas</p>
+        {puedeEditar && (
+          <button onClick={nueva} className="flex items-center gap-1.5 bgold text-black px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
+            <Icon name="plus" size={12}/> Nueva tarea
+          </button>
+        )}
+      </div>
+      {activas.map(t=><Fila key={t.id} t={t}/>)}
+
+      {inactivas.length>0 && (
+        <>
+          <p className="text-[10px] font-black uppercase tracking-wider dim pt-4 pb-1">Desactivadas · {inactivas.length}</p>
+          {inactivas.map(t=><Fila key={t.id} t={t}/>)}
+        </>
+      )}
+
+      {edit && <TareaEditor t={edit} days={days} loc={loc} guardando={guardando}
+        onSave={(v)=>{ setEdit(null); onSave(v); }}
+        onToggleActive={(v)=>{ setEdit(null); onToggleActive(v); }}
+        onClose={()=>setEdit(null)}/>}
+    </div>
+  );
+};
 
 /* ═══════════ APP ═══════════ */
 const App = () => {
@@ -673,6 +869,7 @@ const App = () => {
   const [people,setPeople]=useState([]);       /* salón según el organigrama (respaldo) */
   const [loginPool,setLoginPool]=useState([]); /* quién puede entrar: salón + jefaturas */
   const [salonPool,setSalonPool]=useState([]); /* TODOS los garzones, rotan entre locales */
+  const [catalogAll,setCatalogAll]=useState([]); /* catálogo del local, incluye desactivadas */
   const [rosterWeek,setRosterWeek]=useState([]); /* equipo definido para esta semana */
   const [catalog,setCatalog]=useState([]);
   const [days,setDays]=useState([]);
@@ -724,10 +921,14 @@ const App = () => {
       }).filter(p=>p.pinOk);
 
       setPeople(lista);
-      /* Cada tarea declara en qué locales aplica (ej: delivery solo en BC1) */
-      setCatalog((cat||[])
-        .filter(t => !t.locals || t.locals.includes(loc))
-        .map(t=>({...t, time:t.time_due||''})));
+      /* El catálogo lo carga cargarCatalogo() con la RPC, que filtra por local
+         y trae también las desactivadas. Esta lectura solo sirve de respaldo
+         y para detectar que el SQL todavía no se corrió. */
+      if (!catalogAll.length) {
+        setCatalog((cat||[])
+          .filter(t => !t.locals || t.locals.includes(loc))
+          .map(t=>({...t, time:t.time_due||''})));
+      }
       setDays(ALL_DAYS.slice(0,LOCALES[loc].openDays));
 
       const problemas=[];
@@ -804,6 +1005,43 @@ const App = () => {
     cargarSemana();
   };
 
+  /* ── Catálogo editable desde la app ── */
+  const cargarCatalogo = useCallback(async()=>{
+    if(!loc) return;
+    const r = await sbRpc('salon_task_catalog_all',{p_local:loc});
+    if (Array.isArray(r.data)) {
+      setCatalogAll(r.data);
+      setCatalog(r.data.filter(t=>t.active!==false).map(t=>({...t, time:t.time_due||''})));
+    }
+  },[loc]);
+  useEffect(()=>{ cargarCatalogo(); },[cargarCatalogo]);
+
+  const guardarTarea = async (t) => {
+    if(!user?.puedeAsignar){ toast('No tienes permiso para editar las tareas','error'); return; }
+    setGuardando(true);
+    const r = await sbRpc('salon_task_upsert',{
+      p_actor:user.id, p_pin:user.pin, p_id:t.id||null, p_name:t.name,
+      p_icon:t.icon||'checksq', p_time:t.time_due||null, p_priority:t.priority||'media',
+      p_days:t.days||null, p_photo_required:t.photo_required!==false,
+      p_is_break:!!t.is_break, p_locals:t.locals||['BC1','BC2'], p_sort:t.sort_order||50
+    });
+    setGuardando(false);
+    if(r.error){ toast(r.error,'error'); return; }
+    toast(t.id?'Tarea actualizada':'Tarea creada');
+    cargarCatalogo(); cargarSemana();
+  };
+
+  const toggleTarea = async (t) => {
+    if(!user?.puedeAsignar){ toast('No tienes permiso para editar las tareas','error'); return; }
+    const activar = t.active === false;
+    setGuardando(true);
+    const r = await sbRpc('salon_task_set_active',{p_actor:user.id,p_pin:user.pin,p_id:t.id,p_active:activar});
+    setGuardando(false);
+    if(r.error){ toast(r.error,'error'); return; }
+    toast(activar?'Tarea reactivada':'Tarea desactivada');
+    cargarCatalogo(); cargarSemana();
+  };
+
   const pickLocal=(id)=>{ setLoc(id); localStorage.setItem('bcops_loc',id); setUser(null); };
   const cambiarLocal=()=>{ setUser(null); setLoc(null); localStorage.removeItem('bcops_loc'); };
 
@@ -863,7 +1101,9 @@ const App = () => {
                               salonPool={salonPool} rosterWeek={rosterWeek} rosterDefinido={rosterDefinido}
                               guardarRoster={guardarRoster}/>}
         {tab==='control' && <ControlView loc={loc} weekStart={weekStart} days={days} reporte={reporte} toast={toast}/>}
-        {tab==='tareas'  && <TareasView catalog={catalog} days={days}/>}
+        {tab==='tareas'  && <TareasView loc={loc} catalogAll={catalogAll.length?catalogAll:catalog} days={days}
+                              puedeEditar={!!user.puedeAsignar} guardando={guardando}
+                              onSave={guardarTarea} onToggleActive={toggleTarea}/>}
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={{background:'var(--card)',borderColor:'var(--line)'}}>
