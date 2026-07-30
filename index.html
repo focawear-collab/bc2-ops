@@ -133,6 +133,30 @@ function repartir(catalog, people, day, aleatorio, semilla) {
   tareas.forEach((t, i) => out[people[(i + desfase) % people.length].id].push(t.id));
   return out;
 }
+/* Reparto de la SEMANA completa.
+   Un solo barajado para toda la semana y un desfase que avanza un puesto por día:
+   así cada día queda parejo y, además, la misma tarea le toca a una persona
+   distinta cada día (nadie barre toda la semana). */
+function repartirSemana(catalog, people, days, semilla) {
+  const out = {};
+  if (!people.length) { days.forEach(d => { out[d] = {}; }); return out; }
+
+  let s = semilla >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const orden = catalog.filter(t => !t.is_break);
+  for (let i = orden.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [orden[i], orden[j]] = [orden[j], orden[i]]; }
+
+  days.forEach((day, di) => {
+    const dia = {};
+    people.forEach(p => { dia[p.id] = []; });
+    const aplica = (t) => !t.days || t.days.includes(day);
+    catalog.filter(t => t.is_break && aplica(t)).forEach(t => people.forEach(p => dia[p.id].push(t.id)));
+    orden.filter(aplica).forEach((t, i) => { dia[people[(i + di) % people.length].id].push(t.id); });
+    out[day] = dia;
+  });
+  return out;
+}
+
 const ordenar = (catalog, ids) => {
   const by = Object.fromEntries(catalog.map(t => [t.id, t]));
   return [...(ids||[])].filter(i => by[i]).sort((a,b) => {
@@ -227,10 +251,11 @@ const Login = ({ loc, people, onLogin, onBack, theme, toggleTheme }) => {
 };
 
 /* ═══════════ ASIGNACIÓN SEMANAL ═══════════ */
-const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, puedeAsignar, toast }) => {
+const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, puedeAsignar, toast, guardando, progreso }) => {
   const [day,setDay]=useState(()=>days.includes(todayDayName())?todayDayName():days[0]);
   const [picker,setPicker]=useState(null);
   const [copiar,setCopiar]=useState(false);
+  const [confSemana,setConfSemana]=useState(false);
   const by=Object.fromEntries(catalog.map(t=>[t.id,t]));
   const dia=asign[day]||{};
 
@@ -240,6 +265,13 @@ const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, pue
   const quitar = (pid,tid) => setDia({...dia,[pid]:(dia[pid]||[]).filter(x=>x!==tid)});
   const poner  = (pid,tid) => { const c=dia[pid]||[]; if(c.includes(tid))return; setDia({...dia,[pid]:[...c,tid]}); };
   const aleatorio = () => { if(!people.length){toast('No hay personal de salón en este local','error');return;} setDia(repartir(catalog,people,day,true,Date.now()%100000)); };
+  const diasConTareas = days.filter(d => Object.values(asign[d]||{}).flat().length > 0).length;
+  const semanaAzar = () => {
+    if(!people.length){ toast('No hay personal de salón en este local','error'); return; }
+    if(!confSemana){ setConfSemana(true); return; }
+    setConfSemana(false);
+    guardar(null, repartirSemana(catalog, people, days, Date.now()%100000));
+  };
   const parejo    = () => setDia(repartir(catalog,people,day,false,0));
   const limpiar   = () => setDia({});
   const copiarA   = (dst) => { const n={}; dst.forEach(d=>{n[d]=JSON.parse(JSON.stringify(dia));}); guardar(null,n); setCopiar(false); };
@@ -263,12 +295,30 @@ const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, pue
       </div>
 
       {puedeAsignar && (
+        <>
+        <button onClick={semanaAzar} disabled={guardando}
+          className={`w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+            guardando ? 'card2 border dim'
+            : confSemana ? 'bg-amber-500 text-black'
+            : 'bgold text-black'
+          }`}>
+          <Icon name={guardando?'refresh':'dice'} size={14}/>
+          {guardando ? (progreso||'Guardando…')
+            : confSemana ? `Confirmar · se reemplazan ${diasConTareas} de ${days.length} días ya repartidos`
+            : `Repartir toda la semana al azar (${days.length} días)`}
+        </button>
+        {confSemana && !guardando && (
+          <p className="text-[10px] text-amber-500 font-medium text-center -mt-1">
+            Reparte los {days.length} días de una vez, rotando quién hace cada tarea. Toca de nuevo para aplicar.
+          </p>
+        )}
         <div className="flex gap-2 flex-wrap">
-          <button onClick={aleatorio} className="flex items-center gap-1.5 bgold text-black px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="dice" size={13}/> Repartir al azar</button>
+          <button onClick={aleatorio} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="dice" size={13}/> Solo este día</button>
           <button onClick={parejo} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="refresh" size={12}/> Reparto parejo</button>
           <button onClick={()=>setCopiar(true)} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="copy" size={12}/> Copiar día</button>
           <button onClick={limpiar} className="flex items-center gap-1.5 card2 border dim px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="trash" size={12}/> Limpiar</button>
         </div>
+        </>
       )}
 
       {sinAsignar.length>0 && (
@@ -525,6 +575,8 @@ const App = () => {
   const [weekStart,setWeekStart]=useState(()=>getMonday(new Date()));
   const [tab,setTab]=useState('semana');
   const [cargando,setCargando]=useState(true);
+  const [guardando,setGuardando]=useState(false);
+  const [progreso,setProgreso]=useState(null);
   const [aviso,setAviso]=useState(null);
   const [msg,setMsg]=useState(null);
   const toast=(m,t)=>{ setMsg({m,t}); setTimeout(()=>setMsg(null),2600); };
@@ -587,7 +639,7 @@ const App = () => {
   },[loc,weekISO]);
   useEffect(()=>{ cargarSemana(); },[cargarSemana]);
 
-  /* Guardar un día (o varios, al copiar) */
+  /* Guardar un día (o varios, al copiar o repartir la semana) */
   const guardar = async (day, payload) => {
     if(!user?.puedeAsignar){ toast('Solo los jefes de garzones pueden asignar','error'); return; }
     const lotes = day ? [[day,payload]] : Object.entries(payload);
@@ -595,12 +647,23 @@ const App = () => {
     const nuevo = {...asign};
     lotes.forEach(([d,v])=>{ nuevo[d]=v; });
     setAsign(nuevo);                       /* optimista */
+    const varios = lotes.length > 1;
+    if (varios) setGuardando(true);
+    let i = 0;
     for (const [d,v] of lotes) {
+      i++;
+      if (varios) setProgreso(`Guardando ${DAY_FULL[ALL_DAYS.indexOf(d)]} · ${i} de ${lotes.length}`);
       const limpio={}; Object.entries(v).forEach(([pid,ids])=>{ if(ids&&ids.length) limpio[pid]=ids; });
       const r = await sbRpc('salon_set_day',{ p_actor:user.id, p_pin:user.pin, p_local:loc, p_week:weekISO, p_day:d, p_assign:limpio });
-      if (r.error) { setAsign(prev); toast(r.error.includes('jefes')?'Solo los jefes de garzones pueden asignar':'No se pudo guardar','error'); return; }
+      if (r.error) {
+        setAsign(prev); setGuardando(false); setProgreso(null);
+        toast(r.error.includes('jefes')?'Solo los jefes de garzones pueden asignar':'No se pudo guardar '+DAY_FULL[ALL_DAYS.indexOf(d)],'error');
+        cargarSemana();
+        return;
+      }
     }
-    toast('Guardado');
+    setGuardando(false); setProgreso(null);
+    toast(varios ? `Semana repartida · ${lotes.length} días` : 'Guardado');
     cargarSemana();
   };
 
@@ -658,7 +721,8 @@ const App = () => {
           </div>
         )}
         {tab==='semana'  && <SemanaView loc={loc} catalog={catalog} people={people} days={days} weekStart={weekStart}
-                              asign={asign} guardar={guardar} puedeAsignar={!!user.puedeAsignar} toast={toast}/>}
+                              asign={asign} guardar={guardar} puedeAsignar={!!user.puedeAsignar} toast={toast}
+                              guardando={guardando} progreso={progreso}/>}
         {tab==='control' && <ControlView loc={loc} weekStart={weekStart} days={days} reporte={reporte} toast={toast}/>}
         {tab==='tareas'  && <TareasView catalog={catalog} days={days}/>}
       </main>
