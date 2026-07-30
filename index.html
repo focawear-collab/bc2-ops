@@ -287,35 +287,66 @@ const Login = ({ loc, people, onLogin, onBack, theme, toggleTheme }) => {
 
 /* ═══════════ ASIGNACIÓN SEMANAL ═══════════ */
 /* ═══════════ EQUIPO DE LA SEMANA (rotación entre locales) ═══════════ */
-const RosterSheet = ({ loc, salonPool, rosterWeek, onSave, onClose, weekStart }) => {
+/* Regla: los dos jefes de garzones nunca están en el mismo local.
+   Si quien define el equipo es un jefe, él queda fijo aquí y el otro
+   jefe queda fijo en el otro local. Si lo define el dueño, puede elegir
+   cuál de los dos va aquí, pero solo uno. */
+const RosterSheet = ({ loc, salonPool, rosterWeek, onSave, onClose, weekStart, userId }) => {
+  const jefes = salonPool.filter(p=>p.puedeAsignar);
+  const soyJefe = jefes.some(j=>j.id===userId);
+  const otro = loc==='BC1' ? 'BC2' : 'BC1';
+
   const inicial = rosterWeek.length
     ? rosterWeek.filter(r=>r.en_este_local).map(r=>r.person_id)
-    : salonPool.map(p=>p.id);
+    : (soyJefe ? [userId] : []);          /* parte vacío: se marca a quien SÍ está */
   const [sel,setSel]=useState(inicial);
-  const otro = loc==='BC1' ? 'BC2' : 'BC1';
-  const toggle=(id)=>setSel(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);
+
+  const fijo = (p) => soyJefe && p.puedeAsignar;   /* los jefes no se tocan si soy jefe */
+  const toggle=(p)=>{
+    if (fijo(p)) return;
+    setSel(s=>{
+      if (s.includes(p.id)) return s.filter(x=>x!==p.id);
+      /* solo puede haber un jefe de garzones por local */
+      const limpio = p.puedeAsignar ? s.filter(x=>!jefes.some(j=>j.id===x)) : s;
+      return [...limpio, p.id];
+    });
+  };
+  const soloGarzones = () => setSel(s=>{
+    const jefeActual = s.filter(x=>jefes.some(j=>j.id===x));
+    const base = soyJefe ? [userId] : jefeActual;
+    return [...new Set([...base, ...salonPool.filter(p=>!p.puedeAsignar).map(p=>p.id)])];
+  });
 
   return (
     <Sheet title={`Equipo de la semana · ${LOCALES[loc].name}`} onClose={onClose}>
       <p className="text-[11px] dim font-medium mb-1">Semana del {fmtDate(weekStart)}</p>
-      <p className="text-[11px] dim font-medium mb-4">
+      <p className="text-[11px] dim font-medium mb-2">
         Marca quiénes trabajan contigo en <b className="gold">{LOCALES[loc].name}</b>.
         Los que no marques quedan automáticamente en <b>{LOCALES[otro].name}</b>.
       </p>
+      <p className="text-[10px] dim font-medium mb-4">
+        {soyJefe
+          ? `Tú quedas fijo aquí y el otro jefe de garzones en ${LOCALES[otro].name}: nunca están los dos en el mismo local.`
+          : 'Solo puede haber un jefe de garzones por local — al marcar uno se desmarca el otro.'}
+      </p>
+
       <div className="space-y-1.5">
         {salonPool.map(p=>{
           const on=sel.includes(p.id);
+          const bloq=fijo(p);
           return (
-            <button key={p.id} onClick={()=>toggle(p.id)}
+            <button key={p.id} onClick={()=>toggle(p)} disabled={bloq}
               className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                 on ? 'bg-[#D4A843]/10 border-[color:var(--gold)]' : 'card2'
-              }`}>
+              } ${bloq ? 'opacity-70' : ''}`}>
               <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 ${
                 on ? 'bgold border-[color:var(--gold)] text-black' : 'border-[color:var(--line)]'
               }`}>{on && <Icon name="check" size={14}/>}</div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold truncate">{p.fullName||p.name}</p>
-                <p className="text-[9px] font-bold dim truncate">{p.role}</p>
+                <p className="text-[9px] font-bold dim truncate">
+                  {p.role}{bloq ? (on ? ' · fijo aquí' : ` · fijo en ${LOCALES[otro].name}`) : ''}
+                </p>
               </div>
               <span className={`text-[9px] font-black uppercase px-2 py-1 rounded shrink-0 ${
                 on ? 'bgold text-black' : 'card2 border dim'
@@ -324,12 +355,14 @@ const RosterSheet = ({ loc, salonPool, rosterWeek, onSave, onClose, weekStart })
           );
         })}
       </div>
-      <div className="flex items-center justify-between mt-4 mb-3 px-1">
+
+      <div className="flex items-center justify-between mt-4 mb-3 px-1 gap-2">
         <span className="text-[10px] font-black uppercase tracking-wider dim">
           {sel.length} en {LOCALES[loc].name} · {salonPool.length - sel.length} en {LOCALES[otro].name}
         </span>
-        <button onClick={()=>setSel(salonPool.map(p=>p.id))} className="text-[10px] font-black uppercase gold">Todos aquí</button>
+        <button onClick={soloGarzones} className="text-[10px] font-black uppercase gold shrink-0">Todos los garzones</button>
       </div>
+
       {sel.length === 0 && (
         <p className="text-[10px] text-rose-500 font-bold mb-3 text-center">Marca al menos una persona.</p>
       )}
@@ -345,7 +378,7 @@ const RosterSheet = ({ loc, salonPool, rosterWeek, onSave, onClose, weekStart })
 };
 
 const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, puedeAsignar, toast, guardando, progreso,
-                      salonPool, rosterWeek, rosterDefinido, guardarRoster }) => {
+                      salonPool, rosterWeek, rosterDefinido, guardarRoster, userId }) => {
   const [day,setDay]=useState(()=>days.includes(todayDayName())?todayDayName():days[0]);
   const [picker,setPicker]=useState(null);
   const [copiar,setCopiar]=useState(false);
@@ -535,7 +568,7 @@ const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, pue
       )}
 
       {verRoster && (
-        <RosterSheet loc={loc} salonPool={salonPool} rosterWeek={rosterWeek} weekStart={weekStart}
+        <RosterSheet loc={loc} salonPool={salonPool} rosterWeek={rosterWeek} weekStart={weekStart} userId={userId}
           onClose={()=>setVerRoster(false)}
           onSave={(ids)=>{ setVerRoster(false); guardarRoster(ids); }}/>
       )}
@@ -1138,14 +1171,14 @@ const App = () => {
                               asign={asign} guardar={guardar} puedeAsignar={!!user.puedeAsignar} toast={toast}
                               guardando={guardando} progreso={progreso}
                               salonPool={salonPool} rosterWeek={rosterWeek} rosterDefinido={rosterDefinido}
-                              guardarRoster={guardarRoster}/>}
+                              guardarRoster={guardarRoster} userId={user.id}/>}
         {tab==='control' && <ControlView loc={loc} weekStart={weekStart} days={days} reporte={reporte} toast={toast}/>}
         {tab==='tareas'  && <TareasView loc={loc} catalogAll={catalogAll.length?catalogAll:catalog} days={days}
                               puedeEditar={!!user.puedeAsignar} guardando={guardando}
                               onSave={guardarTarea} onToggleActive={toggleTarea}/>}
         </>)}
         {gateOpen && (
-          <RosterSheet loc={loc} salonPool={salonPool} rosterWeek={rosterWeek} weekStart={weekStart}
+          <RosterSheet loc={loc} salonPool={salonPool} rosterWeek={rosterWeek} weekStart={weekStart} userId={user.id}
             onClose={()=>setGateOpen(false)}
             onSave={(ids)=>{ setGateOpen(false); guardarRoster(ids); }}/>
         )}
