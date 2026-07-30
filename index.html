@@ -614,7 +614,10 @@ const App = () => {
       }).filter(p=>p.pinOk);
 
       setPeople(lista);
-      setCatalog((cat||[]).map(t=>({...t, time:t.time_due||''})));
+      /* Cada tarea declara en qué locales aplica (ej: delivery solo en BC1) */
+      setCatalog((cat||[])
+        .filter(t => !t.locals || t.locals.includes(loc))
+        .map(t=>({...t, time:t.time_due||''})));
       setDays(ALL_DAYS.slice(0,LOCALES[loc].openDays));
 
       const problemas=[];
