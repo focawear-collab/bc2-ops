@@ -890,6 +890,7 @@ const App = () => {
   const [reporte,setReporte]=useState([]);
   const [weekStart,setWeekStart]=useState(()=>getMonday(new Date()));
   const [tab,setTab]=useState('semana');
+  const [gateOpen,setGateOpen]=useState(false);
   const [cargando,setCargando]=useState(true);
   const [guardando,setGuardando]=useState(false);
   const [progreso,setProgreso]=useState(null);
@@ -1108,6 +1109,31 @@ const App = () => {
             {aviso.map((a,i)=><p key={i} className="text-[10px] font-bold text-rose-500 flex gap-1.5"><Icon name="alert" size={12}/> {a}</p>)}
           </div>
         )}
+        {(!rosterDefinido && esHoySemana) ? (
+        <div className="space-y-3 fade-in">
+          <div className="rounded-2xl border p-5" style={{background:'rgba(212,168,67,.08)',borderColor:'var(--gold)'}}>
+            <p className="text-[10px] font-black uppercase tracking-wider gold flex items-center gap-1.5">
+              <Icon name="users" size={13}/> Primero: el equipo de la semana
+            </p>
+            <p className="text-[15px] font-black mt-2">¿Quiénes trabajan en {LOCALES[loc].name} esta semana?</p>
+            <p className="text-[11px] dim font-medium mt-1.5">
+              Es el primer paso de la semana. Sin esto no se puede asignar ni controlar: las tareas se repartirían entre gente que no está en el local.
+            </p>
+            {user.puedeAsignar ? (
+              <button onClick={()=>setGateOpen(true)}
+                className="w-full mt-4 py-3 rounded-xl bgold text-black text-[12px] font-black uppercase tracking-wider">
+                Definir el equipo de la semana
+              </button>
+            ) : (
+              <p className="text-[11px] font-bold mt-4">Lo define el jefe de garzones. Avísale para poder empezar la semana.</p>
+            )}
+          </div>
+          <button onClick={()=>{const d=new Date(weekStart);d.setDate(d.getDate()-7);setWeekStart(d);}}
+            className="w-full py-2.5 rounded-xl card border text-[10px] font-black uppercase tracking-wider dim">
+            Ver la semana anterior
+          </button>
+        </div>
+        ) : (<>
         {tab==='semana'  && <SemanaView loc={loc} catalog={catalog} people={equipo} days={days} weekStart={weekStart}
                               asign={asign} guardar={guardar} puedeAsignar={!!user.puedeAsignar} toast={toast}
                               guardando={guardando} progreso={progreso}
@@ -1117,9 +1143,15 @@ const App = () => {
         {tab==='tareas'  && <TareasView loc={loc} catalogAll={catalogAll.length?catalogAll:catalog} days={days}
                               puedeEditar={!!user.puedeAsignar} guardando={guardando}
                               onSave={guardarTarea} onToggleActive={toggleTarea}/>}
+        </>)}
+        {gateOpen && (
+          <RosterSheet loc={loc} salonPool={salonPool} rosterWeek={rosterWeek} weekStart={weekStart}
+            onClose={()=>setGateOpen(false)}
+            onSave={(ids)=>{ setGateOpen(false); guardarRoster(ids); }}/>
+        )}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-40 border-t px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={{background:'var(--card)',borderColor:'var(--line)'}}>
+      <nav className="fixed bottom-0 inset-x-0 z-40 border-t px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={{background:'var(--card)',borderColor:'var(--line)',display:(!rosterDefinido&&esHoySemana)?'none':'block'}}>
         <div className="max-w-3xl mx-auto grid grid-cols-3 gap-1">
           {[['semana','Asignar','grid'],['control','Control','chart'],['tareas','Tareas','list']].map(([k,l,ic])=>(
             <button key={k} onClick={()=>setTab(k)} className={`flex flex-col items-center gap-1 py-2 rounded-xl ${tab===k?'bgold text-black':'dim'}`}>
