@@ -368,7 +368,13 @@ const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, pue
     guardar(null, repartirSemana(catalog, people, days, Date.now()%100000));
   };
   const parejo    = () => setDia(repartir(catalog,people,day,false,0));
-  const limpiar   = () => setDia({});
+  const [confLimpiar,setConfLimpiar]=useState(false);
+  const limpiar = () => {
+    const n = Object.values(dia).flat().length;
+    if(!n){ toast('Este día ya está vacío'); return; }
+    if(!confLimpiar){ setConfLimpiar(true); setTimeout(()=>setConfLimpiar(false), 4000); return; }
+    setConfLimpiar(false); setDia({});
+  };
   const copiarA   = (dst) => { const n={}; dst.forEach(d=>{n[d]=JSON.parse(JSON.stringify(dia));}); guardar(null,n); setCopiar(false); };
 
   const disponibles = catalog.filter(t=>!t.days||t.days.includes(day));
@@ -443,7 +449,11 @@ const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, pue
           <button onClick={aleatorio} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="dice" size={13}/> Solo este día</button>
           <button onClick={parejo} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="refresh" size={12}/> Reparto parejo</button>
           <button onClick={()=>setCopiar(true)} className="flex items-center gap-1.5 card2 border px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="copy" size={12}/> Copiar día</button>
-          <button onClick={limpiar} className="flex items-center gap-1.5 card2 border dim px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider"><Icon name="trash" size={12}/> Limpiar</button>
+          <button onClick={limpiar} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider ${
+            confLimpiar ? 'bg-rose-600 text-white' : 'card2 border dim'
+          }`}>
+            <Icon name="trash" size={12}/> {confLimpiar ? `Borrar las ${Object.values(dia).flat().length} tareas del día` : 'Limpiar'}
+          </button>
         </div>
         </>
       )}
