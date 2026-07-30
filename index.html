@@ -213,6 +213,12 @@ const Login = ({ loc, people, onLogin, onBack, theme, toggleTheme }) => {
   const L=LOCALES[loc];
   const intentar = async (p) => {
     setBusy(true);
+    /* El dueño no está en el roster visible: se valida aparte */
+    const own = await sbRpc('salon_owner_login', { p_pin: p });
+    if (Array.isArray(own.data) && own.data.length) {
+      const o = own.data[0];
+      setBusy(false); onLogin({ id:o.id, name:o.name, role:o.role, pin:p, puedeAsignar:true }); return;
+    }
     for (const per of people) {
       const r = await sbRpc('verify_pin', { p_person: per.id, p_pin: p });
       if (r.data === true) {
@@ -251,11 +257,71 @@ const Login = ({ loc, people, onLogin, onBack, theme, toggleTheme }) => {
 };
 
 /* ═══════════ ASIGNACIÓN SEMANAL ═══════════ */
-const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, puedeAsignar, toast, guardando, progreso }) => {
+/* ═══════════ EQUIPO DE LA SEMANA (rotación entre locales) ═══════════ */
+const RosterSheet = ({ loc, salonPool, rosterWeek, onSave, onClose, weekStart }) => {
+  const inicial = rosterWeek.length
+    ? rosterWeek.filter(r=>r.en_este_local).map(r=>r.person_id)
+    : salonPool.map(p=>p.id);
+  const [sel,setSel]=useState(inicial);
+  const otro = loc==='BC1' ? 'BC2' : 'BC1';
+  const toggle=(id)=>setSel(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);
+
+  return (
+    <Sheet title={`Equipo de la semana · ${LOCALES[loc].name}`} onClose={onClose}>
+      <p className="text-[11px] dim font-medium mb-1">Semana del {fmtDate(weekStart)}</p>
+      <p className="text-[11px] dim font-medium mb-4">
+        Marca quiénes trabajan contigo en <b className="gold">{LOCALES[loc].name}</b>.
+        Los que no marques quedan automáticamente en <b>{LOCALES[otro].name}</b>.
+      </p>
+      <div className="space-y-1.5">
+        {salonPool.map(p=>{
+          const on=sel.includes(p.id);
+          return (
+            <button key={p.id} onClick={()=>toggle(p.id)}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                on ? 'bg-[#D4A843]/10 border-[color:var(--gold)]' : 'card2'
+              }`}>
+              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 ${
+                on ? 'bgold border-[color:var(--gold)] text-black' : 'border-[color:var(--line)]'
+              }`}>{on && <Icon name="check" size={14}/>}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold truncate">{p.fullName||p.name}</p>
+                <p className="text-[9px] font-bold dim truncate">{p.role}</p>
+              </div>
+              <span className={`text-[9px] font-black uppercase px-2 py-1 rounded shrink-0 ${
+                on ? 'bgold text-black' : 'card2 border dim'
+              }`}>{on ? LOCALES[loc].num : LOCALES[otro].num}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between mt-4 mb-3 px-1">
+        <span className="text-[10px] font-black uppercase tracking-wider dim">
+          {sel.length} en {LOCALES[loc].name} · {salonPool.length - sel.length} en {LOCALES[otro].name}
+        </span>
+        <button onClick={()=>setSel(salonPool.map(p=>p.id))} className="text-[10px] font-black uppercase gold">Todos aquí</button>
+      </div>
+      {sel.length === 0 && (
+        <p className="text-[10px] text-rose-500 font-bold mb-3 text-center">Marca al menos una persona.</p>
+      )}
+      <button disabled={!sel.length} onClick={()=>onSave(sel)}
+        className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider ${
+          sel.length ? 'bgold text-black' : 'card2 border dim'
+        }`}>Guardar equipo de la semana</button>
+      <p className="text-[10px] dim font-medium mt-3">
+        Si alguien cambia de local, las tareas que tenía asignadas esa semana en el local anterior se borran solas.
+      </p>
+    </Sheet>
+  );
+};
+
+const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, puedeAsignar, toast, guardando, progreso,
+                      salonPool, rosterWeek, rosterDefinido, guardarRoster }) => {
   const [day,setDay]=useState(()=>days.includes(todayDayName())?todayDayName():days[0]);
   const [picker,setPicker]=useState(null);
   const [copiar,setCopiar]=useState(false);
   const [confSemana,setConfSemana]=useState(false);
+  const [verRoster,setVerRoster]=useState(false);
   const by=Object.fromEntries(catalog.map(t=>[t.id,t]));
   const dia=asign[day]||{};
 
@@ -280,8 +346,40 @@ const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, pue
   const yaAsignadas = new Set(Object.values(dia).flat());
   const sinAsignar  = disponibles.filter(t=>!yaAsignadas.has(t.id));
 
+  const otroLocal = loc==='BC1' ? 'BC2' : 'BC1';
+
   return (
     <div className="space-y-3 fade-in">
+      {/* Equipo de la semana */}
+      {!rosterDefinido ? (
+        <button disabled={!puedeAsignar} onClick={()=>setVerRoster(true)}
+          className={`w-full rounded-2xl border p-4 text-left transition-all ${
+            puedeAsignar ? 'bg-[#D4A843]/10 border-[color:var(--gold)]' : 'card border'
+          }`}>
+          <p className="text-[10px] font-black uppercase tracking-wider gold flex items-center gap-1.5">
+            <Icon name="users" size={13}/> Primero: el equipo de la semana
+          </p>
+          <p className="text-[12px] font-bold mt-1.5">¿Quiénes trabajan en {LOCALES[loc].name} esta semana?</p>
+          <p className="text-[10px] dim font-medium mt-1">
+            {puedeAsignar
+              ? `Los que no elijas quedan en ${LOCALES[otroLocal].name}. Mientras tanto se usa el equipo del organigrama.`
+              : 'Lo define el jefe de garzones.'}
+          </p>
+        </button>
+      ) : (
+        <div className="flex items-center justify-between gap-2 card border rounded-xl px-3.5 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-wider dim">Equipo de la semana</p>
+            <p className="text-[11px] font-bold truncate">
+              {people.map(p=>p.name).join(', ') || 'nadie asignado a este local'}
+            </p>
+          </div>
+          {puedeAsignar && (
+            <button onClick={()=>setVerRoster(true)} className="text-[10px] font-black uppercase gold shrink-0">Cambiar</button>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
         {days.map(d=>{
           const n=Object.values(asign[d]||{}).flat().length;
@@ -395,6 +493,12 @@ const SemanaView = ({ loc, catalog, people, days, weekStart, asign, guardar, pue
             })}
           </div>
         </Sheet>
+      )}
+
+      {verRoster && (
+        <RosterSheet loc={loc} salonPool={salonPool} rosterWeek={rosterWeek} weekStart={weekStart}
+          onClose={()=>setVerRoster(false)}
+          onSave={(ids)=>{ setVerRoster(false); guardarRoster(ids); }}/>
       )}
 
       {copiar && (
@@ -566,8 +670,10 @@ const App = () => {
   const [theme,setTheme]=useState(()=>localStorage.getItem('bcops_theme')||'dark');
   const [loc,setLoc]=useState(()=>localStorage.getItem('bcops_loc')||null);
   const [user,setUser]=useState(null);
-  const [people,setPeople]=useState([]);      /* salón asignable, espejo del organigrama */
+  const [people,setPeople]=useState([]);       /* salón según el organigrama (respaldo) */
   const [loginPool,setLoginPool]=useState([]); /* quién puede entrar: salón + jefaturas */
+  const [salonPool,setSalonPool]=useState([]); /* TODOS los garzones, rotan entre locales */
+  const [rosterWeek,setRosterWeek]=useState([]); /* equipo definido para esta semana */
   const [catalog,setCatalog]=useState([]);
   const [days,setDays]=useState([]);
   const [asign,setAsign]=useState({});
@@ -604,6 +710,10 @@ const App = () => {
       const norm=s=>(s||'').normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
       const supBy=Object.fromEntries((sup||[]).filter(p=>p.station==='S').map(p=>[norm(p.name),p]));
       setLoginPool((sup||[]).filter(p=>p.local===loc||p.local==='AMBOS'));
+      setSalonPool((sup||[]).filter(p=>p.station==='S').map(p=>({
+        id:p.id, name:p.name.split(' ')[0], fullName:p.name, role:p.role,
+        puedeAsignar:/jefe|jefa/i.test(p.role)
+      })));
       const delLocal=(orgR.people||[]).filter(p=>p.local===loc);
       const faltantes=[];
       const lista=delLocal.map(p=>{
@@ -630,13 +740,15 @@ const App = () => {
     return ()=>{vivo=false};
   },[loc]);
 
-  /* Asignación + reporte de la semana */
+  /* Asignación + roster + reporte de la semana */
   const cargarSemana = useCallback(async()=>{
     if(!loc) return;
     const rows = await sbGet(`salon_assignments?select=day_name,person_id,task_id&local=eq.${loc}&week_start=eq.${weekISO}`);
     const a={};
     (rows||[]).forEach(r=>{ (a[r.day_name]=a[r.day_name]||{}); (a[r.day_name][r.person_id]=a[r.day_name][r.person_id]||[]).push(r.task_id); });
     setAsign(a);
+    const ros = await sbRpc('salon_week_roster_get',{p_week:weekISO,p_local:loc});
+    setRosterWeek(Array.isArray(ros.data)?ros.data:[]);
     const rep = await sbRpc('salon_week_report',{p_local:loc,p_week:weekISO});
     setReporte(Array.isArray(rep.data)?rep.data:[]);
   },[loc,weekISO]);
@@ -667,6 +779,28 @@ const App = () => {
     }
     setGuardando(false); setProgreso(null);
     toast(varios ? `Semana repartida · ${lotes.length} días` : 'Guardado');
+    cargarSemana();
+  };
+
+  /* Quién trabaja en este local esta semana.
+     Si la semana ya tiene equipo definido manda ese; si no, el organigrama. */
+  const equipo = useMemo(()=>{
+    if (rosterWeek.length) {
+      const by=Object.fromEntries(salonPool.map(p=>[p.id,p]));
+      return rosterWeek.filter(r=>r.en_este_local)
+        .map(r=>by[r.person_id] || { id:r.person_id, name:(r.name||'').split(' ')[0], fullName:r.name, role:r.role, puedeAsignar:/jefe|jefa/i.test(r.role||'') });
+    }
+    return people;
+  },[rosterWeek,salonPool,people]);
+  const rosterDefinido = rosterWeek.length > 0;
+
+  const guardarRoster = async (ids) => {
+    if(!user?.puedeAsignar){ toast('Solo los jefes de garzones pueden definir el equipo','error'); return; }
+    setGuardando(true); setProgreso('Guardando el equipo de la semana…');
+    const r = await sbRpc('salon_set_week_roster',{ p_actor:user.id, p_pin:user.pin, p_week:weekISO, p_local:loc, p_ids:ids });
+    setGuardando(false); setProgreso(null);
+    if (r.error) { toast(r.error.includes('jefes')?'Solo los jefes de garzones pueden definir el equipo':'No se pudo guardar el equipo','error'); return; }
+    toast(`Equipo de la semana · ${ids.length} en ${loc}`);
     cargarSemana();
   };
 
@@ -723,9 +857,11 @@ const App = () => {
             {aviso.map((a,i)=><p key={i} className="text-[10px] font-bold text-rose-500 flex gap-1.5"><Icon name="alert" size={12}/> {a}</p>)}
           </div>
         )}
-        {tab==='semana'  && <SemanaView loc={loc} catalog={catalog} people={people} days={days} weekStart={weekStart}
+        {tab==='semana'  && <SemanaView loc={loc} catalog={catalog} people={equipo} days={days} weekStart={weekStart}
                               asign={asign} guardar={guardar} puedeAsignar={!!user.puedeAsignar} toast={toast}
-                              guardando={guardando} progreso={progreso}/>}
+                              guardando={guardando} progreso={progreso}
+                              salonPool={salonPool} rosterWeek={rosterWeek} rosterDefinido={rosterDefinido}
+                              guardarRoster={guardarRoster}/>}
         {tab==='control' && <ControlView loc={loc} weekStart={weekStart} days={days} reporte={reporte} toast={toast}/>}
         {tab==='tareas'  && <TareasView catalog={catalog} days={days}/>}
       </main>
